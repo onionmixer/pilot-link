@@ -1,3 +1,90 @@
+2026-02-15 10:59  Peter Yoo
+
+	* pilot-link 0.13.1: security hardening, modernization, and fork setup
+
+	* libpisock/address.c, libpisock/bluetooth.c, libpisock/contact.c,
+	  libpisock/debug.c, libpisock/dlp.c, libpisock/freebsdusb.c,
+	  libpisock/linuxusb.c, libpisock/location.c, libpisock/mail.c,
+	  libpisock/money.c, libpisock/notepad.c, libpisock/palmpix.c,
+	  libpisock/pi-buffer.c, libpisock/pi-file.c, libpisock/socket.c,
+	  libpisock/veo.c, libpisock/versamail.c, libpisync/sync.c,
+	  src/pilot-clip.c, src/pilot-debug.c, src/pilot-dlpsh.c,
+	  src/pilot-file.c, src/pilot-foto.c, src/pilot-install-expenses.c,
+	  src/pilot-install-hinote.c, src/pilot-install-netsync.c,
+	  src/pilot-port.c, src/pilot-read-ical.c, src/pilot-read-notepad.c,
+	  src/pilot-read-palmpix.c, src/pilot-read-screenshot.c,
+	  src/pilot-read-todos.c, src/pilot-read-veo.c, src/pilot-reminders.c,
+	  src/pilot-xfer.c, src/userland.c: Security hardening â€” replaced ~120
+	  unsafe strcpy/sprintf calls with bounded alternatives (strncpy,
+	  snprintf), added DLP response bounds checking, fixed buffer overflows,
+	  added NULL checks for malloc/realloc/fopen, fixed signal handler
+	  deadlock in pilot-debug.c.
+
+	* configure.ac: Require autoconf 2.71+ and automake 1.16+, replace
+	  deprecated AC_PROG_LIBTOOL with LT_INIT, replace AM_CONFIG_HEADER
+	  with AC_CONFIG_HEADERS, update libpng detection to use modern 1.4+
+	  API (png_set_longjmp_fn).
+
+	* bindings/Python/setup.py.in, bindings/Python/src/*.i,
+	  bindings/Python/test/pisocktests.py: Migrate Python bindings to
+	  Python 3.10 (print functions, exception syntax, integer division).
+
+	* bindings/Java/Makefile.am, bindings/Java/build.xml,
+	  bindings/Java/org/gnu/pilotlink/PilotLink.java: Migrate Java
+	  bindings to OpenJDK 21 (source/target 8, replace deprecated
+	  Runtime.exec(String) with ProcessBuilder).
+
+	* bindings/Perl/Makefile.PL.in, bindings/Perl/Pilot.xs: Update Perl
+	  bindings for Perl 5.34 compatibility.
+
+	* bindings/Tcl/pitcl.c: Update Tcl bindings for Tcl 8.6.
+
+	* tests/Makefile.am, tests/buffer-test.c, tests/time-test.c: Add
+	  buffer-test and time-test offline unit tests.
+
+	* .github/workflows/ci.yml: Add GitHub Actions CI workflow.
+
+	* debian/changelog, debian/compat, debian/control, debian/copyright,
+	  debian/rules, debian/source/format: Add Debian packaging source files.
+
+	* README, INSTALL: Update as fork of desrod/pilot-link, add
+	  project-specific build instructions.
+
+	* .gitignore: Update for current build artifacts, remove .cvsignore
+	  files throughout the tree.
+
+2024-11-24 00:00  David A. Desrosiers
+
+	* doc/xml/catalog.xml.in: Missed URI changes to catalog.xml.in.
+
+	* doc/Makefile.am: Updating for proper manpage builds.
+
+2022-09-20 00:00  unforgettableid
+
+	* README: Update README.
+
+2022-08-17 00:00  Judd Montgomery
+
+	* src/pilot-addresses.c: Fix spelling error.
+
+2021-09-12 00:00  Judd Montgomery
+
+	* libpisock/contact.c: Replace ContactBlob with Blob_t.
+
+	* tests/contactsdb-test.c: Fixed the contactsdb-test test name.
+
+	* include/pi-contact.h, libpisock/contact.c: Added contacts
+	  anniversary patch from jpschewe@mtu.net.
+
+2020-01-28 00:00  David A. Desrosiers
+
+	* .cvsignore: Deleting unused .cvsignore file.
+
+	* .gitignore: Updating ignores for git.
+
+	* First new commit in almost 10 years. Bringing the codebase up to
+	  current standards, languages, code cleanliness.
+
 2007-10-11 12:02  desrod
 
 	* configure.ac: Fixed a small cosmetic error with PNG detection
@@ -1241,7 +1328,7 @@
 
 	* libpisock/darwinusb.c: Fixed a bug that could keep disconnected
 	  entry stay in the list forever if deconnection occured during
-	  u_poll(Ã)
+	  u_poll(ï¿½)
 
 2005-07-04 05:03  fpillet
 
@@ -1893,7 +1980,7 @@
 2005-06-01 05:09  fpillet
 
 	* src/pilot-xfer.c: Added PACE cache files to the list of files to
-	  exclude from backup (creator=='a68k')Ã
+	  exclude from backup (creator=='a68k')ï¿½
 
 2005-05-31 09:20  fpillet
 
@@ -2385,7 +2472,7 @@
 
 2005-04-10 18:17  fpillet
 
-	* libpisock/darwinusb.c: Ãmake sure another thread can't close same
+	* libpisock/darwinusb.c: ï¿½make sure another thread can't close same
 	  connection, better disconnection reporting, better logging
 
 2005-04-10 16:46  fpillet
@@ -2554,11 +2641,11 @@
 
 2005-03-06 06:23  fpillet
 
-	* libpisock/darwinusb.c: removed the USBReset()Ã call which was
+	* libpisock/darwinusb.c: removed the USBReset()ï¿½ call which was
 	  causing problems with m515, m500 and possibly other devices.
 	  Conditionalized it to presence of a Zodiac, which seems to be the
-	  onlyÃ device still requiring it (hopefully I'll find a workaround
-	  soon)Ã
+	  onlyï¿½ device still requiring it (hopefully I'll find a workaround
+	  soon)ï¿½
 
 2005-03-04 13:11  fpillet
 
@@ -2715,7 +2802,7 @@
 2005-02-21 05:57  fpillet
 
 	* bindings/Python/src/pisock.i: restored proper indentation for
-	  Python codeÃ
+	  Python codeï¿½
 
 2005-02-20 18:59  fpillet
 
@@ -3235,7 +3322,7 @@
 2005-01-20 11:55  fpillet
 
 	* libpisock/unixserial.c: fixed bug in my unixserial changes
-	  (doesn't seem to like using recv(Ã) instead of read())
+	  (doesn't seem to like using recv(ï¿½) instead of read())
 
 2005-01-20 11:13  fpillet
 
@@ -3251,7 +3338,7 @@
 2005-01-20 10:20  fpillet
 
 	* libpisock/: cmp.c, net.c, padp.c, slp.c, sys.c, serial.c:
-	  flush()Ã implementation in the protocol stack
+	  flush()ï¿½ implementation in the protocol stack
 
 2005-01-20 10:18  fpillet
 
@@ -3689,7 +3776,7 @@
 	  org/gnu/pilotlink/RawRecord.java, org/gnu/pilotlink/Record.java,
 	  org/gnu/pilotlink/ToDoRecord.java, org/gnu/pilotlink/User.java,
 	  org/gnu/pilotlink/Version.java: Updating Java bindings to match
-	  in lockstep with Stephan Bösebeck's changes
+	  in lockstep with Stephan Bï¿½sebeck's changes
 
 2004-12-20 05:34  fpillet
 
@@ -3775,7 +3862,7 @@
 
 2004-12-15 11:03  fpillet
 
-	* tests/: contactsdb-test.c, dlp-test.c: Ãupdated use of
+	* tests/: contactsdb-test.c, dlp-test.c: ï¿½updated use of
 	  dlp_ReadAppBlock and dlp_ReadSortBlock
 
 2004-12-15 10:55  fpillet
@@ -9147,7 +9234,7 @@
 2002-05-10 18:18  desrod
 
 	* ChangeLog, libpisync/Makefile.am: Fixed multiple definitions of
-	  libpisync_la_LIBADD (Björn Torkelsson)
+	  libpisync_la_LIBADD (Bjï¿½rn Torkelsson)
 
 2002-05-07 15:59  desrod
 
