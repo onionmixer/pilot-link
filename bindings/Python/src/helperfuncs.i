@@ -26,10 +26,11 @@
 
 static PyObject *ConvertFromEncoding(const char *data, const char *encoding, const char *errors, int allowErrors)
 {
-    PyObject *buffer, *string = NULL;
+    PyObject *string = NULL;
+    Py_ssize_t len = (Py_ssize_t)strlen(data);
 
-    buffer = PyBuffer_FromMemory((void *)data, strlen(data));
-    if (buffer == NULL)
+    string = PyUnicode_Decode(data, len, encoding, errors);
+    if (string == NULL)
     {
         if (allowErrors)
         {
@@ -39,24 +40,7 @@ static PyObject *ConvertFromEncoding(const char *data, const char *encoding, con
         }
         return NULL;
     }
-
-    string = PyUnicode_FromEncodedObject(buffer, encoding, errors);
-    if (string == NULL)
-        goto error;
-
-    Py_DECREF(buffer);
     return string;
-
-error:
-    Py_XDECREF(buffer);
-    Py_XDECREF(string);
-    if (allowErrors)
-    {
-        PyErr_Clear();
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-    return NULL;
 }
 
 static int ConvertToEncoding(PyObject *object, const char *encoding, const char *errors, int allowErrors, char *buffer, int maxBufSize)
@@ -65,18 +49,23 @@ static int ConvertToEncoding(PyObject *object, const char *encoding, const char 
     char *s;
     PyObject *encoded = NULL;
 
-    if (PyString_Check(object))
-        encoded = PyString_AsEncodedObject(object, encoding, errors);
-    else if (PyUnicode_Check(object))
+    if (PyBytes_Check(object)) {
+        s = PyBytes_AsString(object);
+        if (s == NULL)
+            goto error;
+        len = (int)PyBytes_Size(object);
+    } else if (PyUnicode_Check(object)) {
         encoded = PyUnicode_AsEncodedString(object, encoding, errors);
-
-    if (encoded == NULL)
+        if (encoded == NULL)
+            goto error;
+        s = PyBytes_AsString(encoded);
+        if (s == NULL)
+            goto error;
+        len = (int)PyBytes_Size(encoded);
+    } else {
         goto error;
+    }
 
-    s = PyString_AsString(encoded);
-    if (s == NULL)
-        goto error;
-    len = strlen(s);
     if (len)
     {
         if (len >= maxBufSize)
@@ -85,7 +74,7 @@ static int ConvertToEncoding(PyObject *object, const char *encoding, const char 
     }
     buffer[len] = 0;
 
-    Py_DECREF(encoded);
+    Py_XDECREF(encoded);
     return 1;
 
 error:
@@ -107,8 +96,8 @@ static PyObject *PyObjectFromDBInfo(const struct DBInfo *dbi)
 			"more", dbi->more,
 			"flags", dbi->flags,
 			"miscFlags", dbi->miscFlags,
-			"type", PyString_FromStringAndSize(printlong(dbi->type), 4),
-			"creator", PyString_FromStringAndSize(printlong(dbi->creator), 4),
+			"type", PyBytes_FromStringAndSize(printlong(dbi->type), 4),
+			"creator", PyBytes_FromStringAndSize(printlong(dbi->creator), 4),
 			"version", dbi->version,
 			"modnum", dbi->modnum,
 			"createDate", dbi->createDate,

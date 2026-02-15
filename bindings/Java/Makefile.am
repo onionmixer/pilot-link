@@ -88,8 +88,8 @@ install: all
 			break; \
 		fi; \
 	done; \
-	if [ -n "$${ARCH}" ]; then \
-		echo "Unknown architecture. Copy lipijsock.so to ${JAVABASE}/jre/lib/ARCH/"; \
+	if [ -z "$${ARCH}" ]; then \
+		echo "Unknown architecture. Copy libjpisock.so to ${JAVABASE}/jre/lib/ARCH/"; \
 	else \
 		mkdir -p "$(DESTDIR)${JAVABASE}/jre/lib/$${ARCH}" && \
 		cp libjpisock.so "$(DESTDIR)${JAVABASE}/jre/lib/$${ARCH}"; \

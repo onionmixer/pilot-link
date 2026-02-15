@@ -41,10 +41,6 @@
 
 #ifdef HAVE_PNG
 # include "png.h"
-# if (PNG_LIBPNG_VER < 10201)
-#  define png_voidp_NULL (png_voidp)NULL
-#  define png_error_ptr_NULL (png_error_ptr)NULL
-# endif
 #endif
 
 #define pi_mktag(c1,c2,c3,c4) (((c1)<<24)|((c2)<<16)|((c3)<<8)|(c4))
@@ -482,6 +478,8 @@ int ColourCorrect (struct Veo *v, uint8_t *red, uint8_t *green, uint8_t *blue, l
 	gMax = rMax = bMax = 0;
 
 	tmpRow = malloc( 2560 );
+	if (tmpRow == NULL)
+		return -1;
 
 	GetPicData( 0, 0, v, tmpRow );
 
@@ -856,8 +854,8 @@ void write_png (FILE * f, struct Veo *v, long flags)
    png_infop info_ptr;
 
    png_ptr = png_create_write_struct
-	 (PNG_LIBPNG_VER_STRING, png_voidp_NULL,
-	  png_error_ptr_NULL, png_error_ptr_NULL);
+	 (PNG_LIBPNG_VER_STRING, NULL,
+	  NULL, NULL);
 
    if (!png_ptr)
 	 return;
@@ -955,7 +953,8 @@ void WritePicture (int sd, int db, int type, char *name, const char *progname, l
 	 sprintf (extension, ".ppm");
 
    sprintf (fname, "%s", name);
-   strcpy (v.name, name);
+   strncpy (v.name, name, sizeof(v.name) - 1);
+   v.name[sizeof(v.name) - 1] = '\0';
 
 	if (plu_protect_files (fname, extension, sizeof(fname) ) < 1) {
 		/* no suitable filename could be found. */

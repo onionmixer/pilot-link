@@ -276,11 +276,6 @@ pack_AddressAppInfo(const AddressAppInfo_t *ai, unsigned char *record, size_t le
 	pos += i;
 	len -= i;
 
-	for (i = 3; i < 8; i++)
-		strcpy(ai->phoneLabels[i - 3], ai->labels[i]);
-	for (i = 19; i < 22; i++)
-		strcpy(ai->phoneLabels[i - 19 + 5], ai->labels[i]);
-
 	memset(pos, 0, destlen);
 
 	r = 0;
@@ -296,11 +291,6 @@ pack_AddressAppInfo(const AddressAppInfo_t *ai, unsigned char *record, size_t le
 	pos += 2;
 	set_byte(pos, ai->sortByCompany);
 	pos += 2;
-
-	for (i = 3; i < 8; i++)
-		strcpy(ai->phoneLabels[i - 3], ai->labels[i]);
-	for (i = 19; i < 22; i++)
-		strcpy(ai->phoneLabels[i - 19 + 5], ai->labels[i]);
 
 	return (pos - record);
 }

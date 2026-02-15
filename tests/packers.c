@@ -1761,15 +1761,22 @@ int test_mail()
 
 int main(int argc, char *argv[])
 {
+   int total_errors = 0;
+
+   (void)argc;
+   (void)argv;
+
    seed = time(0) & 0xff;	/* Make scribble checker use a random check value */
    target = malloc(8192);
    targetlen = 8192;
 
-   test_memo();
-   test_address();
-   test_appointment();
-   test_todo();
-   test_expense();
-   test_mail();
-   return 0;
+   total_errors += test_memo();
+   total_errors += test_address();
+   total_errors += test_appointment();
+   total_errors += test_todo();
+   total_errors += test_expense();
+   total_errors += test_mail();
+
+   printf("\nTotal: %d error(s) across all packer tests.\n", total_errors);
+   return total_errors ? 1 : 0;
 }

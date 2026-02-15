@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=-format
+export DEB_CFLAGS_MAINT_STRIP = -ffile-prefix-map=$(CURDIR)=.
+export DEB_CFLAGS_MAINT_APPEND = -Wno-error
+
+%:
+	dh $@ --with autoreconf
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--prefix=/usr \
+		--libdir=/usr/lib/x86_64-linux-gnu \
+		--enable-conduits \
+		--enable-libusb \
+		--with-bluez \
+		--enable-xsltproc \
+		--without-perl \
+		--without-python \
+		--without-java
+
+override_dh_auto_install:
+	dh_auto_install
+	find debian/pilot-link -name '*.la' -delete

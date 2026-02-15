@@ -203,7 +203,7 @@ int main(int argc, const char *argv[])
 			fprintf(ical, "$n date [date today]\n");
 			fprintf(ical, "$n todo 1\n");
 			fprintf(ical, "$n option Priority %d\n", t.priority);
-			sprintf(id_buf, "%lx", id_);
+			snprintf(id_buf, sizeof(id_buf), "%lx", id_);
 			fprintf(ical, "$n option PilotRecordId %s\n", id_buf);
 			fprintf(ical, "$n done %d\n", t.complete ? 1 : 0);
 			fprintf(ical, "cal add $n\n");
@@ -362,7 +362,7 @@ int main(int argc, const char *argv[])
 		} else
 			fprintf(ical, "$i date $begin\n");
 
-		sprintf(id_buf, "%lx", id_);
+		snprintf(id_buf, sizeof(id_buf), "%lx", id_);
 		fprintf(ical, "$i option PilotRecordId %s\n", id_buf);
 		fprintf(ical, "cal add $i\n");
 

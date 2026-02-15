@@ -89,9 +89,11 @@ unpack_Transaction(Transaction_t *trans, unsigned char *buffer, size_t len)
 	trans->xfer = get_byte(p);
 	p += 1;
 
-	strcpy(trans->description, (char *)p);
+	strncpy(trans->description, (char *)p, sizeof(trans->description) - 1);
+	trans->description[sizeof(trans->description) - 1] = '\0';
 	p += 19;
-	strcpy(trans->note, (char *)p);
+	strncpy(trans->note, (char *)p, sizeof(trans->note) - 1);
+	trans->note[sizeof(trans->note) - 1] = '\0';
 	p += strlen((char *)p) + 1;
 
 	return (p - buffer);
@@ -165,10 +167,10 @@ int pack_Transaction(struct Transaction *trans, unsigned char *buffer,
 	set_byte(p, trans->xfer);
 	p += 1;
 
-	strcpy((char *)p, trans->description);
+	memcpy(p, trans->description, 19);
 	p += 19;
-	strcpy((char *)p, trans->note);
-	p += strlen((char *)p) + 1;
+	memcpy(p, trans->note, strlen(trans->note) + 1);
+	p += strlen(trans->note) + 1;
 
 	return (p - buffer);
 }

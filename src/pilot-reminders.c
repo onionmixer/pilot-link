@@ -144,7 +144,8 @@ int main(int argc, const char *argv[])
 		}
 
 		if (a.advance) {
-			sprintf(delta + strlen(delta),
+			size_t dlen = strlen(delta);
+			snprintf(delta + dlen, sizeof(delta) - dlen,
 				"AT %2.2d:%2.2d +%d ", a.begin.tm_hour,
 				a.begin.tm_min,
 				a.advance *
@@ -158,7 +159,9 @@ int main(int argc, const char *argv[])
 		}
 
 		if (!a.repeatForever) {
-			sprintf(delta + strlen(delta), "UNTIL %d %s %d ",
+			size_t dlen = strlen(delta);
+			snprintf(delta + dlen, sizeof(delta) - dlen,
+				"UNTIL %d %s %d ",
 				a.repeatEnd.tm_mday,
 				Month[a.repeatEnd.tm_mon],
 				a.repeatEnd.tm_year + 1900);

@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pilot-link
+Source: https://github.com/jichu4n/pilot-link
+
+Files: *
+Copyright: 1996-2007 pilot-link contributors
+License: GPL-2
+
+Files: libpisock/* libpisync/*
+Copyright: 1996-2007 pilot-link contributors
+License: LGPL-2
+
+License: GPL-2
+ On Debian systems, the full text of the GNU General Public License
+ version 2 can be found in /usr/share/common-licenses/GPL-2.
+
+License: LGPL-2
+ On Debian systems, the full text of the GNU Lesser General Public License
+ version 2 can be found in /usr/share/common-licenses/LGPL-2.

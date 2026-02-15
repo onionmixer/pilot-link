@@ -39,7 +39,7 @@ WriteMakefile(
     'VERSION'    => '@PILOT_LINK_VERS@.@PILOT_LINK_MAJOR@.@PILOT_LINK_MINOR@@PILOT_LINK_PATCH@',
     'XSPROTOARG' => '-noprototypes',
     'INC'        => "-I$plincdir",
-    'DEFINE'     => '-DPERL_POLLUTE',
+    'DEFINE'     => '',
     'PREFIX'     => "$prefix",
     'INSTALLDIRS'=> 'vendor',
     'dynamic_lib'=> {'OTHERLDFLAGS' => $lib},

@@ -362,50 +362,58 @@ pack_Mail(struct Mail *mail, unsigned char *buffer, size_t len)
 	buffer += 6;
 
 	if (mail->subject) {
-		strcpy((char *)buffer, mail->subject);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->subject);
+		memcpy(buffer, mail->subject, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->from) {
-		strcpy((char *)buffer, mail->from);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->from);
+		memcpy(buffer, mail->from, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->to) {
-		strcpy((char *)buffer, mail->to);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->to);
+		memcpy(buffer, mail->to, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->cc) {
-		strcpy((char *)buffer, mail->cc);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->cc);
+		memcpy(buffer, mail->cc, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->bcc) {
-		strcpy((char *)buffer, mail->bcc);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->bcc);
+		memcpy(buffer, mail->bcc, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->replyTo) {
-		strcpy((char *)buffer, mail->replyTo);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->replyTo);
+		memcpy(buffer, mail->replyTo, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->sentTo) {
-		strcpy((char *)buffer, mail->sentTo);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->sentTo);
+		memcpy(buffer, mail->sentTo, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
 	if (mail->body) {
-		strcpy((char *)buffer, mail->body);
-		buffer += strlen((char *)buffer);
+		size_t slen = strlen(mail->body);
+		memcpy(buffer, mail->body, slen + 1);
+		buffer += slen;
 	} else
 		set_byte(buffer, 0);
 	buffer++;
@@ -591,20 +599,23 @@ pack_MailSyncPref(MailSyncPref_t *pref, unsigned char *record, size_t len)
 	record += 2;
 
 	if (pref->filterTo) {
-		strcpy((char *)record, pref->filterTo);
-		record += strlen(pref->filterTo);
+		size_t slen = strlen(pref->filterTo);
+		memcpy(record, pref->filterTo, slen);
+		record += slen;
 	}
 	*record++ = 0;
 
 	if (pref->filterFrom) {
-		strcpy((char *)record, pref->filterFrom);
-		record += strlen(pref->filterFrom);
+		size_t slen = strlen(pref->filterFrom);
+		memcpy(record, pref->filterFrom, slen);
+		record += slen;
 	}
 	*record++ = 0;
 
 	if (pref->filterSubject) {
-		strcpy((char *)record, pref->filterSubject);
-		record += strlen(pref->filterSubject);
+		size_t slen = strlen(pref->filterSubject);
+		memcpy(record, pref->filterSubject, slen);
+		record += slen;
 	}
 	*record++ = 0;
 
@@ -666,8 +677,9 @@ pack_MailSignaturePref(struct MailSignaturePref *pref, unsigned char *record,
 	if (len < destlen)
 		return 0;
 	if (pref->signature) {
-		strcpy((char *)record, pref->signature);
-		record += strlen(pref->signature);
+		size_t slen = strlen(pref->signature);
+		memcpy(record, pref->signature, slen);
+		record += slen;
 	}
 	*record = 0;
 	record++;

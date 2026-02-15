@@ -49,7 +49,7 @@ static char *iso_time_str(time_t t)
 	static 	char buf[50];
 
 	tm = *localtime(&t);
-	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+	snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
 	return (buf);
@@ -240,12 +240,16 @@ static void list_records(struct pi_file *pf, struct DBInfo *ip, int filedump, in
 					FILE *fp;
 					char name[64];
 
-					sprintf(name, "%4s%04x.bin",
+					snprintf(name, sizeof(name), "%4s%04x.bin",
 						printlong(type), id_);
 					fp = fopen(name, "w");
-					fwrite(buf, size, 1, fp);
-					fclose(fp);
-					printf("(written to %s)\n", name);
+					if (fp != NULL) {
+						fwrite(buf, size, 1, fp);
+						fclose(fp);
+						printf("(written to %s)\n", name);
+					} else {
+						fprintf(stderr, "Could not open %s for writing\n", name);
+					}
 				}
 			}
 		}
@@ -324,11 +328,15 @@ static void dump_record(struct pi_file *pf, struct DBInfo *ip, char *rkey, int f
 			FILE *fp;
 			char name[64];
 
-			sprintf(name, "%4s%04x.bin", printlong(type), id_);
+			snprintf(name, sizeof(name), "%4s%04x.bin", printlong(type), id_);
 			fp = fopen(name, "w");
-			fwrite(buf, size, 1, fp);
-			fclose(fp);
-			printf("(written to %s)\n", name);
+			if (fp != NULL) {
+				fwrite(buf, size, 1, fp);
+				fclose(fp);
+				printf("(written to %s)\n", name);
+			} else {
+				fprintf(stderr, "Could not open %s for writing\n", name);
+			}
 		}
 	} else {
 		printf("entries\n");

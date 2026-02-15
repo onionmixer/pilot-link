@@ -546,8 +546,10 @@ pi_bluetooth_bind(pi_socket_t *ps, struct sockaddr *addr, size_t addrlen)
  ***********************************************************************/
 static int pi_bluetooth_listen(pi_socket_t *ps, int backlog)
 {
-	// FIXME: no result is actually being taken into account
-    	listen(ps->sd, 10);
+	if (listen(ps->sd, backlog) < 0) {
+		ps->last_error = PI_ERR_GENERIC_SYSTEM;
+		return PI_ERR_GENERIC_SYSTEM;
+	}
     	ps->state = PI_SOCK_LISTEN;
     	return 0;
 }

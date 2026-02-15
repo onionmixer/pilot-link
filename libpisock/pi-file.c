@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -109,34 +110,62 @@ static int pi_file_set_rbuf_size(pi_file_t *pf, size_t size);
 #define PILOT_TIME_DELTA (unsigned)(2082844800)
 
 
-/* FIXME: These conversion functions apply no timezone correction. UNIX uses
-   UTC for time_t's, while the Pilot uses local time for database backup
-   time and appointments, etc. It is not particularly simple to convert
-   between these in UNIX, especially since the Pilot's local time is
-   unknown, and if syncing over political boundries, could easily be
-   different then the local time on the UNIX box. Since the Pilot does not
-   know what timezone it is in, there is no unambiguous way to correct for
-   this.
-   
-   Worse, the creation date for a program is stored in the local time _of
-   the computer which did the final linking of that program_. Again, the
-   Pilot does not store the timezone information needed to reconstruct
-   where/when this was.
-   
-   A better immediate tack would be to dissect these into struct tm's, and
-   return those.
+/* Timezone correction notes:
+   The Palm stores times as seconds since 1904-01-01 00:00:00 in LOCAL time.
+   Unix time_t counts seconds since 1970-01-01 00:00:00 UTC. These functions
+   apply a local timezone correction, assuming the Palm device is (or was) in
+   the same timezone as the computer running this code. This assumption may
+   be incorrect when syncing across timezone boundaries, but it is correct
+   for the common case and is better than no correction at all.
+
+   Note: Program creation dates are stored in the local time of the machine
+   that linked the program, so those dates may still have timezone artifacts.
                                                                      --KJA
    */
 time_t
 pilot_time_to_unix_time(unsigned long raw_time)
 {
-	return (time_t) (raw_time - PILOT_TIME_DELTA);
+	time_t local_secs;
+	struct tm tm;
+
+	if (raw_time == 0)
+		return (time_t) 0;
+
+	local_secs = (time_t) (raw_time - PILOT_TIME_DELTA);
+
+	/* Break down local_secs as if UTC to extract the time components.
+	   These components actually represent the Palm's local time. */
+	if (gmtime_r(&local_secs, &tm) == NULL)
+		return local_secs;
+
+	/* mktime interprets the components as local time and returns
+	   the correct UTC-based time_t. */
+	tm.tm_isdst = -1;
+	return mktime(&tm);
 }
 
 unsigned long
 unix_time_to_pilot_time(time_t t)
 {
-	return (unsigned long) ((unsigned long) t + PILOT_TIME_DELTA);
+	struct tm utc_tm;
+	time_t utc_as_local;
+	long tz_offset;
+
+	if (t == 0)
+		return 0;
+
+	/* Compute timezone offset: local - UTC (in seconds).
+	   gmtime gives UTC components, mktime interprets them as local,
+	   so the difference t - mktime(gmtime(t)) equals the tz offset. */
+	if (gmtime_r(&t, &utc_tm) == NULL)
+		return (unsigned long) ((unsigned long) t + PILOT_TIME_DELTA);
+
+	utc_tm.tm_isdst = -1;
+	utc_as_local = mktime(&utc_tm);
+	tz_offset = (long) difftime(t, utc_as_local);
+
+	/* Palm local seconds = UTC seconds + timezone offset */
+	return (unsigned long) ((unsigned long) (t + tz_offset) + PILOT_TIME_DELTA);
 }
 
 pi_file_t

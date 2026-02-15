@@ -9,13 +9,7 @@ noinst_PROGRAMS =		\
 	contactsdb-test		\
 	dlp-test		\
 	versamail-test		\
-	vfs-test		\
-	contactsdb-test
-
-contactsdb_jps_SOURCES =	\
-	contactsdb-jps.c
-contactsdb_jps_LDADD =		\
-	$(top_builddir)/libpisock/libpisock.la
+	vfs-test
 
 calendardb_test_SOURCES =	\
 	calendardb-test.c
@@ -48,11 +42,23 @@ versamail_test_LDADD =		\
 	$(top_builddir)/libpisock/libpisock.la
 
 check_PROGRAMS =  		\
-	packers
+	packers			\
+	buffer-test		\
+	time-test
 
 packers_SOURCES = 		\
 	packers.c
 packers_LDADD = 		\
 	$(top_builddir)/libpisock/libpisock.la
 
-TESTS = packers
+buffer_test_SOURCES =		\
+	buffer-test.c
+buffer_test_LDADD =		\
+	$(top_builddir)/libpisock/libpisock.la
+
+time_test_SOURCES =		\
+	time-test.c
+time_test_LDADD =		\
+	$(top_builddir)/libpisock/libpisock.la
+
+TESTS = packers buffer-test time-test

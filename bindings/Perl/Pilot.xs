@@ -23,11 +23,9 @@
 #include "XSUB.h"
 #include "patchlevel.h"
 
-/* FIXME Hack to get around a perl macro problem with calling the type 'int
-   dirty;' in pi-mail.h and pi-todo.h. This originally showed up with perl
-   5.6 and gcc-3.x, and was fixed in gcc, but now appears in perl 5.8 with
-   gcc-3.x. It smells like another internal macro being exposed into
-   userland. */
+/* Safety: undefine 'dirty' in case Perl headers expose it as a macro,
+   which conflicts with 'int dirty;' fields in pi-mail.h and pi-todo.h.
+   With -DPERL_POLLUTE removed, this should no longer be needed. */
 #undef dirty
 
 #include "pi-macros.h"
@@ -84,14 +82,7 @@ struct tm * avtotm (AV * av, struct tm * t) {
 	return t;
 }
 
-#ifndef newRV_noinc   
-static SV * rv;
-#define newRV_noinc(s) ((rv=newRV(s)), SvREFCNT_dec(s), rv)
-#endif
-
-#if (PATCHLEVEL < 3) || ((PATCHLEVEL == 3) && (SUBVERSION < 16))
-#define sv_derived_from(x, y) sv_isobject((x))
-#endif
+/* newRV_noinc and sv_derived_from are built-in since Perl 5.004+ */
 
 extern char * printlong _((unsigned long val));
 extern unsigned long makelong _((char * c));

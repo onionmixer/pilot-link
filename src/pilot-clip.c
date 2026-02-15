@@ -54,6 +54,8 @@ static void *GetClip(int sock, int type, int *length)
 		return 0;
 
 	buffer = malloc(len);
+	if (buffer == NULL)
+		return 0;
 
 	/* MemMove */
 	PackRPC(&p, 0xA026, RPC_IntReply, RPC_Ptr(buffer, len),

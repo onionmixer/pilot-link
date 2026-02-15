@@ -20,7 +20,7 @@ AC_DEFUN([AM_CHECK_PYTHON],
                 AC_PATH_PROG(PYTHON, python)
 
                 if test "$PYTHON" != ""; then
-                        PYTHON_VERSION=$($PYTHON -c "import sys; print(sys.version[[0:3]])")
+                        PYTHON_VERSION=$($PYTHON -c "import sys; print('{}.{}'.format(*sys.version_info[[:2]]))")
                         PYTHON_PREFIX=$($PYTHON -c "import sys; print(sys.prefix)")
                 fi
 

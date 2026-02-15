@@ -515,10 +515,14 @@ dlp_response_read (struct dlpResponse **res, int sd)
 	response->err = (enum dlpErrors) get_short (&dlp_buf->data[2]);
 	pi_set_palmos_error(sd, (int)response->err);
 
-	/* FIXME: add bounds checking to make sure we don't access past
-	 * the end of the buffer in case the data is corrupt */
 	buf = dlp_buf->data + 4;
+	const unsigned char *buf_end = dlp_buf->data + dlp_buf->used;
 	for (i = 0; i < response->argc; i++) {
+		/* bounds check: need at least 1 byte for the arg header */
+		if (buf + 1 > buf_end) {
+			pi_buffer_free (dlp_buf);
+			return pi_set_error(sd, PI_ERR_DLP_COMMAND);
+		}
 		argid = get_byte (buf) & 0x3f;
 		if (get_byte(buf) & PI_DLP_ARG_FLAG_LONG) {
 			if (pi_version(sd) < 0x0104) {
@@ -533,17 +537,38 @@ dlp_response_read (struct dlpResponse **res, int sd)
 				pi_buffer_free (dlp_buf);
 				return pi_set_error(sd, PI_ERR_DLP_DATASIZE);
 			}
+			/* bounds check: need 6 bytes for long arg header */
+			if (buf + 6 > buf_end) {
+				pi_buffer_free (dlp_buf);
+				return pi_set_error(sd, PI_ERR_DLP_COMMAND);
+			}
 			len = get_long (&buf[2]);
 			buf += 6;
 		} else if (get_byte(buf) & PI_DLP_ARG_FLAG_SHORT) {
+			/* bounds check: need 4 bytes for short arg header */
+			if (buf + 4 > buf_end) {
+				pi_buffer_free (dlp_buf);
+				return pi_set_error(sd, PI_ERR_DLP_COMMAND);
+			}
 			len = get_short (&buf[2]);
 			buf += 4;
 		} else {
+			/* bounds check: need 2 bytes for tiny arg header */
+			if (buf + 2 > buf_end) {
+				pi_buffer_free (dlp_buf);
+				return pi_set_error(sd, PI_ERR_DLP_COMMAND);
+			}
 			argid = get_byte(buf);
 			len = get_byte(&buf[1]);
 			buf += 2;
 		}
-		
+
+		/* bounds check: verify data length fits within remaining buffer */
+		if (len > (size_t)(buf_end - buf)) {
+			pi_buffer_free (dlp_buf);
+			return pi_set_error(sd, PI_ERR_DLP_COMMAND);
+		}
+
 		response->argv[i] = dlp_arg_new (argid, len);
 		if (response->argv[i] == NULL) {
 			pi_buffer_free (dlp_buf);
@@ -1334,10 +1359,10 @@ dlp_FindDBByName (int sd, int cardno, PI_CONST char *name, unsigned long *locali
 
 	set_byte(DLP_REQUEST_DATA(req, 0, 0), flags);
 	set_byte(DLP_REQUEST_DATA(req, 0, 1), cardno);
-	strcpy(DLP_REQUEST_DATA(req, 0, 2), name);
+	memcpy(DLP_REQUEST_DATA(req, 0, 2), name, strlen(name) + 1);
 
 	result = dlp_exec(sd, req, &res);
-	
+
 	dlp_request_free(req);
 
 	if (result > 0)
@@ -1457,10 +1482,10 @@ dlp_OpenDB(int sd, int cardno, int mode, PI_CONST char *name, int *dbhandle)
 
 	set_byte(DLP_REQUEST_DATA(req, 0, 0), cardno);
 	set_byte(DLP_REQUEST_DATA(req, 0, 1), mode);
-	strcpy(DLP_REQUEST_DATA(req, 0, 2), name);
+	memcpy(DLP_REQUEST_DATA(req, 0, 2), name, strlen(name) + 1);
 
 	result = dlp_exec(sd, req, &res);
-	
+
 	dlp_request_free(req);
 	
 	if (result > 0) {
@@ -1491,10 +1516,10 @@ dlp_DeleteDB(int sd, int card, const char *name)
 
 	set_byte(DLP_REQUEST_DATA(req, 0, 0), card);
 	set_byte(DLP_REQUEST_DATA(req, 0, 1), 0);
-	strcpy(DLP_REQUEST_DATA(req, 0, 2), name);
+	memcpy(DLP_REQUEST_DATA(req, 0, 2), name, strlen(name) + 1);
 
 	result = dlp_exec(sd, req, &res);
-	
+
 	dlp_request_free(req);
 	dlp_response_free(res);
 	
@@ -1523,10 +1548,10 @@ dlp_CreateDB(int sd, unsigned long creator, unsigned long type, int cardno,
 	set_byte(DLP_REQUEST_DATA(req, 0, 9), 0);
 	set_short(DLP_REQUEST_DATA(req, 0, 10), flags);
 	set_short(DLP_REQUEST_DATA(req, 0, 12), version);
-	strcpy(DLP_REQUEST_DATA(req, 0, 14), name);
+	memcpy(DLP_REQUEST_DATA(req, 0, 14), name, strlen(name) + 1);
 
 	result = dlp_exec(sd, req, &res);
-	
+
 	dlp_request_free(req);
 	
 	if (result > 0 && dbhandle) {
@@ -1756,11 +1781,11 @@ dlp_AddSyncLogEntry(int sd, char *entry)
 	if (req == NULL)
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
-	strcpy(DLP_REQUEST_DATA(req, 0, 0), entry);
-	
+	memcpy(DLP_REQUEST_DATA(req, 0, 0), entry, strlen(entry) + 1);
+
 	result = dlp_exec(sd, req, &res);
 
-	dlp_request_free(req);	
+	dlp_request_free(req);
 	dlp_response_free(res);
 
 	if (result > 0) {
@@ -1982,7 +2007,7 @@ dlp_WriteUserInfo(int sd, const struct PilotUser *User)
 	set_date((unsigned char *)DLP_REQUEST_DATA(req, 0, 12), User->lastSyncDate);
 	set_byte(DLP_REQUEST_DATA(req, 0, 20), 0xff);
 	set_byte(DLP_REQUEST_DATA(req, 0, 21), len);
-	strcpy(DLP_REQUEST_DATA(req, 0, 22), User->username);
+	memcpy(DLP_REQUEST_DATA(req, 0, 22), User->username, len);
 
 	result = dlp_exec (sd, req, &res);
 
@@ -2145,11 +2170,11 @@ dlp_WriteNetSyncInfo(int sd, const struct NetSyncInfo *i)
 	set_short(DLP_REQUEST_DATA(req, 0, 20), strlen(i->hostAddress) + 1);
 	set_short(DLP_REQUEST_DATA(req, 0, 22), strlen(i->hostSubnetMask) + 1);
 
-	strcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostName);
+	memcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostName, strlen(i->hostName) + 1);
 	str_offset += strlen(i->hostName) + 1;
-	strcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostAddress);
+	memcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostAddress, strlen(i->hostAddress) + 1);
 	str_offset += strlen(i->hostAddress) + 1;
-	strcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostSubnetMask);
+	memcpy(DLP_REQUEST_DATA(req, 0, str_offset), i->hostSubnetMask, strlen(i->hostSubnetMask) + 1);
 
 	result = dlp_exec(sd, req, &res);
 
@@ -3903,7 +3928,7 @@ dlp_VFSGetDefaultDir(int sd, int volRefNum, const char *type, char *dir,
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
 	set_short(DLP_REQUEST_DATA(req, 0, 0), volRefNum);
-	strcpy(DLP_REQUEST_DATA(req, 0, 2), type);
+	memcpy(DLP_REQUEST_DATA(req, 0, 2), type, strlen(type) + 1);
 	
 	result = dlp_exec(sd, req, &res);
 
@@ -3915,12 +3940,13 @@ dlp_VFSGetDefaultDir(int sd, int volRefNum, const char *type, char *dir,
 		if (*len < buflen + 1)
 			result = pi_set_error(sd, PI_ERR_DLP_BUFSIZE);
 		else {
-			if (buflen)
-				strncpy(dir, DLP_RESPONSE_DATA (res, 0, 2), 
+			if (buflen) {
+				strncpy(dir, DLP_RESPONSE_DATA (res, 0, 2),
 					(size_t)buflen);
-			else
+				dir[buflen] = '\0';
+			} else
 				dir[0] = '\0';
-			
+
 			*len = buflen;
 
 			LOG((PI_DBG_DLP, PI_DBG_LVL_INFO,
@@ -3954,7 +3980,7 @@ dlp_VFSImportDatabaseFromFile(int sd, int volRefNum, const char *path,
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
 	set_short(DLP_REQUEST_DATA(req, 0, 0), volRefNum);
-	strcpy(DLP_REQUEST_DATA(req, 0, 2), path);
+	memcpy(DLP_REQUEST_DATA(req, 0, 2), path, strlen(path) + 1);
 
 	result = dlp_exec(sd, req, &res);
 
@@ -3998,7 +4024,7 @@ dlp_VFSExportDatabaseToFile(int sd, int volRefNum, const char *path,
 	set_short(DLP_REQUEST_DATA(req, 0, 0), volRefNum);
 	set_short(DLP_REQUEST_DATA(req, 0, 2), cardno);
 	set_long(DLP_REQUEST_DATA(req, 0, 4), localid);
-	strcpy(DLP_REQUEST_DATA(req, 0, 8), path);
+	memcpy(DLP_REQUEST_DATA(req, 0, 8), path, strlen(path) + 1);
 
 	result = dlp_exec(sd, req, &res);
 
@@ -4024,7 +4050,7 @@ dlp_VFSFileCreate(int sd, int volRefNum, const char *name)
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
-	strcpy (DLP_REQUEST_DATA (req, 0, 2), name);
+	memcpy (DLP_REQUEST_DATA (req, 0, 2), name, strlen(name) + 1);
 
 	result = dlp_exec (sd, req, &res);
 
@@ -4053,7 +4079,7 @@ dlp_VFSFileOpen(int sd, int volRefNum, const char *path, int openMode,
 
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
 	set_short (DLP_REQUEST_DATA (req, 0, 2), openMode);
-	strcpy (DLP_REQUEST_DATA (req, 0, 4), path);
+	memcpy (DLP_REQUEST_DATA (req, 0, 4), path, strlen(path) + 1);
 
 	result = dlp_exec (sd, req, &res);
 
@@ -4222,9 +4248,9 @@ dlp_VFSFileDelete(int sd, int volRefNum, const char *path)
 	req = dlp_request_new (dlpFuncVFSFileDelete, 1, 2 + (strlen (path) + 1));
 	if (req == NULL)
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
-	
+
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
-	strcpy (DLP_REQUEST_DATA (req, 0, 2), path);
+	memcpy (DLP_REQUEST_DATA (req, 0, 2), path, strlen(path) + 1);
 	
 	result = dlp_exec (sd, req, &res);
 
@@ -4254,8 +4280,8 @@ dlp_VFSFileRename(int sd, int volRefNum, const char *path,
 
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
 	set_short (DLP_REQUEST_DATA (req, 0, 2), 2);
-	strcpy (DLP_REQUEST_DATA (req, 0, 4), path);
-	strcpy (DLP_REQUEST_DATA (req, 0, 4 + (strlen(path) + 1)), newname);
+	memcpy (DLP_REQUEST_DATA (req, 0, 4), path, strlen(path) + 1);
+	memcpy (DLP_REQUEST_DATA (req, 0, 4 + (strlen(path) + 1)), newname, strlen(newname) + 1);
 	
 	result = dlp_exec (sd, req, &res);
 
@@ -4458,7 +4484,7 @@ dlp_VFSDirCreate(int sd, int volRefNum, const char *path)
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
-	strcpy (DLP_REQUEST_DATA (req, 0, 2), path);
+	memcpy (DLP_REQUEST_DATA (req, 0, 2), path, strlen(path) + 1);
 	
 	result = dlp_exec (sd, req, &res);
 
@@ -4572,7 +4598,7 @@ dlp_VFSVolumeFormat(int sd, unsigned char flags,
 	set_short(DLP_REQUEST_DATA(req, 0, 2),
 		 sizeof(struct VFSSlotMountParam));
 	set_byte(DLP_REQUEST_DATA(req, 0, 4), flags);
-	set_byte(DLP_REQUEST_DATA(req, 0, 4), 0); /* unused */
+	set_byte(DLP_REQUEST_DATA(req, 0, 5), 0); /* unused */
 
 	set_short(DLP_REQUEST_DATA(req, 0, 6), param->vfsMountParam.volRefNum);
 	set_short(DLP_REQUEST_DATA(req, 0, 8), param->vfsMountParam.reserved); 
@@ -4708,6 +4734,7 @@ dlp_VFSVolumeGetLabel(int sd, int volRefNum, int *len, char *name)
 	if (result > 0) {
 		strncpy(name, DLP_RESPONSE_DATA(res, 0, 0),
 			 (size_t)(*len - 1));
+		name[*len - 1] = '\0';
 		*len = strlen(name);
 
 		LOG((PI_DBG_DLP, PI_DBG_LVL_INFO,
@@ -4736,7 +4763,7 @@ dlp_VFSVolumeSetLabel(int sd, int volRefNum, const char *name)
 		return pi_set_error(sd, PI_ERR_GENERIC_MEMORY);
 
 	set_short (DLP_REQUEST_DATA (req, 0, 0), volRefNum);
-	strcpy (DLP_REQUEST_DATA (req, 0, 2), name);
+	memcpy (DLP_REQUEST_DATA (req, 0, 2), name, strlen(name) + 1);
 
 	result = dlp_exec (sd, req, &res);
 

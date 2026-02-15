@@ -20,10 +20,12 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 #include "pi-dlp.h"
 #include "pi-header.h"
@@ -70,13 +72,44 @@ int main(int argc, char *argv[])
 	}
 	if (po_err < -1) plu_badoption(po,po_err);
 
-	/* FIXME: Take the user-supplied IP or hostname and reverse it to
-	   get the other component, which reduces the complexity of this by
-	   one argument passed in. getnameinfo() will help here. */
 	if (address && !inet_pton(AF_INET, address, &addr)) {
 		fprintf(stderr,"   ERROR: The address you supplied, '%s' is in invalid.\n"
 			"      Please supply a dotted quad, such as 1.2.3.4\n\n", address);
 		return 1;
+	}
+
+	/* Auto-resolve: if address given but no hostname, do reverse DNS */
+	if (address && !hostname) {
+		struct sockaddr_in sa;
+		static char resolved_host[NI_MAXHOST];
+
+		memset(&sa, 0, sizeof(sa));
+		sa.sin_family = AF_INET;
+		inet_pton(AF_INET, address, &sa.sin_addr);
+
+		if (getnameinfo((struct sockaddr *)&sa, sizeof(sa),
+				resolved_host, sizeof(resolved_host),
+				NULL, 0, NI_NAMEREQD) == 0) {
+			hostname = resolved_host;
+		}
+	}
+
+	/* Auto-resolve: if hostname given but no address, do forward DNS */
+	if (hostname && !address) {
+		struct addrinfo hints, *res;
+		static char resolved_addr[INET_ADDRSTRLEN];
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET;
+
+		if (getaddrinfo(hostname, NULL, &hints, &res) == 0) {
+			struct sockaddr_in *sa = (struct sockaddr_in *)res->ai_addr;
+			if (inet_ntop(AF_INET, &sa->sin_addr,
+				      resolved_addr, sizeof(resolved_addr))) {
+				address = resolved_addr;
+			}
+			freeaddrinfo(res);
+		}
 	}
 
 	if (netmask && !inet_pton(AF_INET, netmask, &addr)) {
@@ -104,15 +137,21 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 	}
 
-	if (hostname)
-		strncpy(Net.hostName, hostname, sizeof(Net.hostName));
+	if (hostname) {
+		strncpy(Net.hostName, hostname, sizeof(Net.hostName) - 1);
+		Net.hostName[sizeof(Net.hostName) - 1] = '\0';
+	}
 
-	if (address)
-		strncpy(Net.hostAddress, address, sizeof(Net.hostAddress));
+	if (address) {
+		strncpy(Net.hostAddress, address, sizeof(Net.hostAddress) - 1);
+		Net.hostAddress[sizeof(Net.hostAddress) - 1] = '\0';
+	}
 
-	if (netmask)
+	if (netmask) {
 		strncpy(Net.hostSubnetMask, netmask,
-			sizeof(Net.hostSubnetMask));
+			sizeof(Net.hostSubnetMask) - 1);
+		Net.hostSubnetMask[sizeof(Net.hostSubnetMask) - 1] = '\0';
+	}
 
 	if (!plu_quiet) {
 		printf("   Hostname...: %s\n", Net.hostName);

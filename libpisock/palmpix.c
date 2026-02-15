@@ -1670,14 +1670,66 @@ int unpack_PalmPix (struct PalmPixState *s,
 	  
        }
    
-   if (wanted & pixThumbnail) 
+   if (wanted & pixThumbnail)
      {
-	
-	/* FIXME */
-	retcode = 0;
-	fprintf (stderr,
-		  "palmpix.c: thumbnail reader not implemented\n");
-	
+
+	void *buffer;
+	size_t bufsize;
+	int thumbW = h->w / 8;
+	int thumbH = h->h / 8;
+	int pixels = thumbW * thumbH;
+
+	if (thumbW > 0 && thumbH > 0 && h->thumbLen > 0
+	    && s->getrecord (s, header_recno + 2, &buffer, &bufsize) == 0
+	    && (int)bufsize >= h->thumbLen)
+	  {
+	     s->pixmap = malloc ((size_t)(pixels * 3));
+	     if (s->pixmap != NULL)
+	       {
+		  const unsigned char *thumb = (const unsigned char *)buffer;
+		  int i;
+
+		  if (h->thumbLen >= pixels)
+		    {
+		       /* 8bpp greyscale */
+		       for (i = 0; i < pixels; i++)
+			 {
+			    unsigned char grey = thumb[i];
+			    s->pixmap[i * 3]     = grey;
+			    s->pixmap[i * 3 + 1] = grey;
+			    s->pixmap[i * 3 + 2] = grey;
+			 }
+		    }
+		  else if (h->thumbLen >= pixels / 2)
+		    {
+		       /* 4bpp greyscale, high nibble first */
+		       for (i = 0; i < pixels; i++)
+			 {
+			    unsigned char nibble;
+			    unsigned char grey;
+			    if (i % 2 == 0)
+			      nibble = (thumb[i / 2] >> 4) & 0x0f;
+			    else
+			      nibble = thumb[i / 2] & 0x0f;
+			    grey = nibble * 17; /* 0-15 -> 0-255 */
+			    s->pixmap[i * 3]     = grey;
+			    s->pixmap[i * 3 + 1] = grey;
+			    s->pixmap[i * 3 + 2] = grey;
+			 }
+		    }
+		  else
+		    {
+		       free (s->pixmap);
+		       s->pixmap = NULL;
+		       retcode = 0;
+		    }
+	       }
+	     else
+	       retcode = 0;
+	  }
+	else
+	  retcode = 0;
+
      }
    
    if (wanted & pixPixmap) 

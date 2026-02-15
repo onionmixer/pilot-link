@@ -179,22 +179,31 @@ pi_dumpline(const char *buf, size_t len, unsigned int addr)
 	int offset;
 	char line[256];
 
-	offset = sprintf(line, "  %.4x  ", addr);
+	if (len > 16)
+		len = 16;
+
+	offset = snprintf(line, sizeof(line), "  %.4x  ", addr);
 
 	for (i = 0; i < 16; i++) {
 		if (i < len)
-			offset += sprintf(line+offset, "%.2x ",
-			       0xff & (unsigned int) buf[i]);
+			offset += snprintf(line+offset, sizeof(line)-offset,
+			       "%.2x ", 0xff & (unsigned int) buf[i]);
 		else {
-			strcpy(line+offset, "   ");
-			offset += 3;
+			if (offset + 3 < (int)sizeof(line)) {
+				memcpy(line+offset, "   ", 3);
+				offset += 3;
+			}
 		}
 	}
 
-	strcpy(line+offset, "  ");
-	offset += 2;
+	if (offset + 2 < (int)sizeof(line)) {
+		memcpy(line+offset, "  ", 2);
+		offset += 2;
+	}
 
 	for (i = 0; i < len; i++) {
+		if (offset + 2 >= (int)sizeof(line) - 1)
+			break;
 		if (buf[i] == '%') {
 			/* since we're going through pi_log, we need to
 			 * properly escape % characters
@@ -207,7 +216,13 @@ pi_dumpline(const char *buf, size_t len, unsigned int addr)
 			line[offset++] = '.';
 	}
 
-	strcpy(line+offset,"\n");
+	if (offset < (int)sizeof(line) - 1) {
+		line[offset++] = '\n';
+		line[offset] = '\0';
+	} else {
+		line[sizeof(line)-2] = '\n';
+		line[sizeof(line)-1] = '\0';
+	}
 	LOG((PI_DBG_ALL, PI_DBG_LVL_NONE, line));
 }
 

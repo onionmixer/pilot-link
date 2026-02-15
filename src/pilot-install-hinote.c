@@ -161,7 +161,9 @@ int main(int argc, const char *argv[])
 
 
 		memset(file_text,0,HINOTE_BUFFER_SIZE);
-		strcpy(file_text, file_arg);
+		if (filenamelen >= HINOTE_BUFFER_SIZE)
+			filenamelen = HINOTE_BUFFER_SIZE - 1;
+		memcpy(file_text, file_arg, filenamelen);
 		file_text[filenamelen] = '\n';
 
 		fread(file_text + filenamelen + 1, filelen, 1, f);

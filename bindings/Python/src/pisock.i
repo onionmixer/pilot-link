@@ -53,10 +53,15 @@ from pisockextras import *
 #include "pi-util.h"
 
 #define DGETLONG(src,key,default) (PyDict_GetItemString(src,key) ? \
-				   PyInt_AsLong(PyDict_GetItemString(src,key)) : default)
+				   PyLong_AsLong(PyDict_GetItemString(src,key)) : default)
 
-#define DGETSTR(src,key,default) (PyDict_GetItemString(src,key) ? \
-				  PyString_AsString(PyDict_GetItemString(src,key)) : default)
+static const char *_pisock_get_str(PyObject *obj, const char *def) {
+    if (obj == NULL) return def;
+    if (PyUnicode_Check(obj)) return PyUnicode_AsUTF8(obj);
+    if (PyBytes_Check(obj)) return PyBytes_AS_STRING(obj);
+    return def;
+}
+#define DGETSTR(src,key,default) _pisock_get_str(PyDict_GetItemString(src,key), default)
 
 static PyObject *PIError = NULL;
 %}

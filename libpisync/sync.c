@@ -95,7 +95,7 @@ PilotRecord *sync_CopyPilotRecord(const PilotRecord * precord)
 {
 	PilotRecord *new_record;
 
-	new_record = sync_NewPilotRecord(sizeof(precord->buffer));
+	new_record = sync_NewPilotRecord(precord->len);
 
 	new_record->recID 	= precord->recID;
 	new_record->catID 	= precord->catID;

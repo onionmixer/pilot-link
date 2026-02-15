@@ -69,30 +69,32 @@
 %typemap (python,in) unsigned long STR4 {
 	if (!($input) || ($input == Py_None)) {
 		$1 = 0;
+	} else if (PyUnicode_Check($input) && PyUnicode_GetLength($input) == 4) {
+		$1 = makelong(PyUnicode_AsUTF8($input));
+	} else if (PyBytes_Check($input) && PyBytes_Size($input) == 4) {
+		$1 = makelong(PyBytes_AS_STRING($input));
 	} else {
-		if (!PyString_Check($input) || (PyString_Size($input) != 4)) {
-			PyErr_SetString(PyExc_ValueError, "argument must be a 4-character string");
-			return 0;
-		}
-		$1 = makelong(PyString_AsString($input));
+		PyErr_SetString(PyExc_ValueError, "argument must be a 4-character string or bytes");
+		return 0;
 	}
 }
 
 %typemap (python,in) long STR4 {
 	if (!($input) || ($input == Py_None)) {
 		$1 = 0;
+	} else if (PyUnicode_Check($input) && PyUnicode_GetLength($input) == 4) {
+		$1 = makelong(PyUnicode_AsUTF8($input));
+	} else if (PyBytes_Check($input) && PyBytes_Size($input) == 4) {
+		$1 = makelong(PyBytes_AS_STRING($input));
 	} else {
-		if (!PyString_Check($input) || (PyString_Size($input) != 4)) {
-			PyErr_SetString(PyExc_ValueError, "argument must be a 4-character string");
-			return 0;
-		}
-		$1 = makelong(PyString_AsString($input));
+		PyErr_SetString(PyExc_ValueError, "argument must be a 4-character string or bytes");
+		return 0;
 	}
 }
 
 %typemap (python,argout) unsigned long *OUTSTR4 {
 	if ($1) {
-		PyObject *o = PyString_FromStringAndSize(printlong(*$1), 4);
+		PyObject *o = PyBytes_FromStringAndSize(printlong(*$1), 4);
 		$result = t_output_helper($result, o);
 	}
 }

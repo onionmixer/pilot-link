@@ -55,15 +55,20 @@ pi_buffer_expect (pi_buffer_t *buf, size_t expect)
 	if ((buf->allocated - buf->used) >= expect)
 		return buf;
 
-	if (buf->data)
-		buf->data = (unsigned char *) realloc (buf->data, buf->used + expect);
-	else
+	if (buf->data) {
+		unsigned char *tmp = (unsigned char *) realloc (buf->data, buf->used + expect);
+		if (tmp == NULL) {
+			/* realloc failed: keep existing data intact */
+			return NULL;
+		}
+		buf->data = tmp;
+	} else {
 		buf->data = (unsigned char *) malloc (expect);
-
-	if (buf->data == NULL) {
-		buf->allocated = 0;
-		buf->used = 0;
-		return NULL;
+		if (buf->data == NULL) {
+			buf->allocated = 0;
+			buf->used = 0;
+			return NULL;
+		}
 	}
 
 	buf->allocated = buf->used + expect;
@@ -94,8 +99,12 @@ pi_buffer_clear (pi_buffer_t *buf)
 	buf->used = 0;
 	if (buf->allocated > (size_t)65535)
 	{
-		buf->data = (unsigned char *) realloc (buf->data, 65535);
-		buf->allocated = (buf->data == NULL) ? 0 : 65535;
+		unsigned char *tmp = (unsigned char *) realloc (buf->data, 65535);
+		if (tmp != NULL) {
+			buf->data = tmp;
+			buf->allocated = 65535;
+		}
+		/* on realloc failure, keep existing allocation */
 	}
 }
 

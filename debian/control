@@ -1,0 +1,15 @@
+Source: pilot-link
+Section: utils
+Priority: optional
+Maintainer: onion <onionmixer@gmail.com>
+Build-Depends: debhelper (>= 13), dh-autoreconf, autotools-dev, pkg-config, bison,
+ libpopt-dev, libpng-dev, libreadline-dev, libbluetooth-dev, libusb-dev
+Standards-Version: 4.6.0
+
+Package: pilot-link
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Tools and libraries for communicating with Palm handhelds
+ pilot-link is a suite of tools for connecting to PalmOS handheld devices.
+ It includes libraries (libpisock, libpisync) and 30+ command-line utilities
+ for syncing, backing up, and managing Palm devices.

@@ -582,7 +582,8 @@ int do_install(int sd, const char **install_files)
 	    printf("%s being truncated to %s: ", install_files[i],
 		   installed_name);
 	}
-	strcpy(info.name, installed_name);
+	strncpy(info.name, installed_name, sizeof(info.name) - 1);
+	info.name[sizeof(info.name) - 1] = '\0';
 	printf("   Installing file %s\n", installed_name);
 	fflush(stdout);
 	/* Open jpg file */

@@ -1,4 +1,4 @@
-<project name="pilog-link" default="dist" basedir=".">
+<project name="pilot-link" default="dist" basedir=".">
 	<description>simple example build file</description>
 	<property name="dist" location="dist" />
 	
@@ -20,7 +20,7 @@
 	</target>
 	
 	<target name="compile" depends="init">
-	                <javac srcdir="." destdir="." target="1.5" includes="**/**.java" debug="on"/>
+	                <javac srcdir="." destdir="." release="21" includes="**/**.java" debug="on"/>
 	</target>
 	
 	 <target name="jar" depends="compile" description="generate the library jar" >

@@ -477,7 +477,8 @@ int user_fn(int sd, int argc, const char *argv[])
 	}
 
 	if (userName) {
-		strncpy(User.username, userName, sizeof(User.username));
+		strncpy(User.username, userName, sizeof(User.username) - 1);
+		User.username[sizeof(User.username) - 1] = '\0';
 		printf("   Username = \"%s\"\n", User.username);
 	}
 	if (userID) {
@@ -527,7 +528,7 @@ char *timestr(time_t t)
 	static char buf[50];
 
 	tm = *localtime(&t);
-	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+	snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
 	return (buf);

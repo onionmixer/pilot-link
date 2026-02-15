@@ -28,12 +28,13 @@ python-clean: Python/setup.py
 if WITH_PYTHON
 PYTHON_ALL = python-build
 PYTHON_INSTALL = python-install
+PYTHON_UNINSTALL =
 PYTHON_CLEAN = python-clean
 else
-PYTHON_ALL = 
-PYTHON_INSTALL = 
-PYTHON_MCLEAN = 
-PYTHON_CLEAN = 
+PYTHON_ALL =
+PYTHON_INSTALL =
+PYTHON_UNINSTALL =
+PYTHON_CLEAN =
 endif
 
 #
@@ -58,19 +59,20 @@ perl-clean: Perl/Makefile
 if WITH_PERL
 PERL_ALL = perl-build
 PERL_INSTALL = perl-install
+PERL_UNINSTALL = perl-uninstall
 PERL_CLEAN = perl-clean
 else
-PERL_ALL = 
-PERL_INSTALL = 
-PERL_MCLEAN = 
-PERL_CLEAN = 
+PERL_ALL =
+PERL_INSTALL =
+PERL_UNINSTALL =
+PERL_CLEAN =
 endif
 
 all-local: $(PERL_ALL) $(PYTHON_ALL)
 
 install-exec-local: $(PYTHON_INSTALL) $(PERL_INSTALL)
 
-uninstall-local: $(PYTHON_INSTALL) $(PERL_UNINSTALL)
+uninstall-local: $(PYTHON_UNINSTALL) $(PERL_UNINSTALL)
 
 clean-local: $(PERL_CLEAN) $(PYTHON_CLEAN)
 
@@ -79,6 +81,6 @@ distclean-local: $(PERL_CLEAN) $(PYTHON_CLEAN)
 maintainer-clean-local: $(PERL_CLEAN) $(PYTHON_CLEAN)
 
 dist-hook:
-	rm -rf $(find $(distdir) -name CVS)
+	rm -rf `find $(distdir) -name CVS`
 
 EXTRA_DIST = Python Java Perl

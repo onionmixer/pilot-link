@@ -15,16 +15,16 @@ AC_PREFIX_DEFAULT(/usr/local)
 dnl ******************************
 dnl Limit to a specific ac version
 dnl ******************************
-AC_PREREQ(2.53)
-AM_CONFIG_HEADER(config.h)
-AM_CONFIG_HEADER(include/pi-md5.h)
+AC_PREREQ([2.71])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([include/pi-md5.h])
 
 dnl ******************************
 dnl Pilot Link Version
 dnl ******************************
 PILOT_LINK_VERS=0
 PILOT_LINK_MAJOR=13
-PILOT_LINK_MINOR=0
+PILOT_LINK_MINOR=1
 PILOT_LINK_PATCH=
 
 AC_SUBST(PILOT_LINK_VERS)
@@ -37,7 +37,7 @@ dnl ******************************
 dnl Pilot Link Library Version
 dnl libpisock.so.CURRENT.AGE.REVISION
 dnl Please see the following URL for details:
-dnl http://sources.redhat.com/autobook/autobook/autobook_91.html
+dnl https://www.gnu.org/software/libtool/manual/html_node/Versioning.html
 dnl ******************************
 PISOCK_CURRENT=10
 PISOCK_REVISION=0
@@ -73,7 +73,6 @@ fi
 
 dnl Check host type
 AC_CANONICAL_HOST
-AC_CANONICAL_SYSTEM
 AC_DEFINE_UNQUOTED(HOST_OS, "$host", [Host type])
 
 AM_INIT_AUTOMAKE(pilot-link, [$VERSION])
@@ -83,9 +82,8 @@ dnl ******************************
 dnl Checks for basic programs.
 dnl ******************************
 AC_PROG_CC
-AC_PROG_INSTALL(install ginstall)
-AC_PROG_F77(g77 g77-3.2 g77-3.3 fl32 f77 fort77 xlf f90 xlf90)
-AM_PROG_LIBTOOL
+AC_PROG_INSTALL
+LT_INIT
 AC_PROG_YACC
 
 
@@ -195,10 +193,10 @@ AC_CHECK_LIB(inet, main, [LIBS="$LIBS -linet"])
 AC_CACHE_CHECK([for cispeed and cospeed members of struct termios],
 	ac_cv_termios_cspeed,
 
-	[AC_TRY_COMPILE(
-		[#include <termios.h>], [int main(void) {
-		 struct termios t;t.c_ispeed=t.c_ospeed=0;}],
-			ac_cv_termios_cspeed=yes,ac_cv_termios_cspeed=no)])
+	[AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM([#include <termios.h>], [
+		 struct termios t;t.c_ispeed=t.c_ospeed=0;])],
+			[ac_cv_termios_cspeed=yes],[ac_cv_termios_cspeed=no])])
 
 if test $ac_cv_termios_cspeed = yes; then
 	AC_DEFINE(TERMIOS_CSPEED, 1, [Define if we have termios(3) support])
@@ -391,14 +389,23 @@ if test "x$enable_conduits" != "xno"; then
 	if test "x$with_included_popt" != "xyes"; then
 		dnl Determine if system popt is good enough
 		save_LIBS="$LIBS"
-		AC_CHECK_HEADER(popt.h,
-			AC_CHECK_DECL(POPT_BIT_SET,
-				AC_CHECK_LIB(popt, poptStrippedArgv,,
-					[with_included_popt="yes"]),
-				[with_included_popt="yes"],
-				[#include <popt.h>]),
-			[with_included_popt="yes"]
-		)
+		AC_CHECK_HEADER([popt.h],
+			[have_popt_h=yes],
+			[have_popt_h=no])
+		if test "x$have_popt_h" = "xyes"; then
+			AC_CHECK_DECL([POPT_BIT_SET],
+				[have_popt_bitset=yes],
+				[have_popt_bitset=no],
+				[#include <popt.h>])
+			if test "x$have_popt_bitset" = "xyes"; then
+				AC_CHECK_LIB([popt], [poptStrippedArgv],,
+					[with_included_popt="yes"])
+			else
+				with_included_popt="yes"
+			fi
+		else
+			with_included_popt="yes"
+		fi
 		LIBS="$save_LIBS"
 	fi
 
@@ -448,7 +455,7 @@ AC_CHECK_LIB(
 		AC_CHECK_FUNC(iconv, [
 			AC_CHECK_FUNCS(gnu_get_libc_version)
 			AC_MSG_CHECKING(if system iconv handles CP1252)
-			AC_TRY_RUN([
+			AC_RUN_IFELSE([AC_LANG_SOURCE([
 #include <iconv.h>
 #include <stdlib.h>
 #include <string.h>
@@ -474,17 +481,9 @@ int main (int argc, char **argv)
 		exit (1);
 
 	exit (0);
-}], AC_MSG_RESULT(yes); have_iconv=yes, [AC_MSG_RESULT(no);], AC_MSG_RESULT(not cross compiling);)])])
+}])], [AC_MSG_RESULT(yes); have_iconv=yes], [AC_MSG_RESULT(no)], [AC_MSG_RESULT(not cross compiling)])])])
 
-dnl ##  Fixed AC_TRY_RUN warning, missing third argument. -DD 22/01/2002
-dnl
-dnl 	AC_TRY_RUN is a macro that's basically like an if-then-else structure. If
-dnl 	the test program (whose text is the first argument) succeeds, the second
-dnl 	argument is executed; if the test fails, the third argument is executed; and
-dnl 	if autoconf knows it is cross-compiling for another machine and therefore
-dnl 	can't run a test program at all, it doesn't try but just executes the fourth
-dnl 	argument.  Usually that last alternative should be the most conservative
-dnl 	assumption.
+dnl ##  Migrated from AC_TRY_RUN to AC_RUN_IFELSE (autoconf 2.71+)
 
 CFLAGS="$save_CFLAGS"
 LDFLAGS="$save_LDFLAGS"
@@ -528,7 +527,7 @@ else
 fi
 
 dnl Check if version of Perl is sufficient
-PERL_MINVERSION="5.000_00"
+PERL_MINVERSION="5.034_000"
 
 if test "x$PERL" != "x"; then
 	AC_MSG_CHECKING(for perl version greater than or equal to $PERL_MINVERSION)
@@ -841,7 +840,7 @@ if [[ x"$PL_FROM_GIT" = xyes ]]; then
   echo " | This is likely to be unstable, or contain some incomplete   |"
   echo " | features, or just plain not work at all. Use it at your own |"
   echo " | risk. Please help us to fix any bugs you find, by reporting |"
-  echo " | them at: https://github.com/desrod/pilot-link/issues        |"
+  echo " | them at: https://github.com/onionmixer/pilot-link/issues    |"
   echo " \`-------------------------------------------------------------'"
   echo ""
 fi

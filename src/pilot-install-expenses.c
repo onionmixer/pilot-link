@@ -198,19 +198,19 @@ int main(int argc, const char *argv[])
 		*(b++) 	= theExpense.currency;
 		*(b++) 	= 0x00;
 
-		strcpy(b, theExpense.amount);
+		memcpy(b, theExpense.amount, strlen(theExpense.amount) + 1);
 		b += strlen(theExpense.amount) + 1;
 
-		strcpy(b, theExpense.vendor);
+		memcpy(b, theExpense.vendor, strlen(theExpense.vendor) + 1);
 		b += strlen(theExpense.vendor) + 1;
 
-		strcpy(b, theExpense.city);
+		memcpy(b, theExpense.city, strlen(theExpense.city) + 1);
 		b += strlen(theExpense.city) + 1;
 
-		strcpy(b, theExpense.attendees);
+		memcpy(b, theExpense.attendees, strlen(theExpense.attendees) + 1);
 		b += strlen(theExpense.attendees) + 1;
 
-		strcpy(b, theExpense.note);
+		memcpy(b, theExpense.note, strlen(theExpense.note) + 1);
 		b += strlen(theExpense.note) + 1;
 
 		size = b - buf;

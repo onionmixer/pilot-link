@@ -50,7 +50,7 @@ public class PilotLink {
 	public RawAppInfo getAppInfoBlock(String dbname) {
 		return getAppInfoBlock(handle,dbname);
 	}
-	private native RawAppInfo getAppInfoBlock(int h, String dbnmae);
+	private native RawAppInfo getAppInfoBlock(int h, String dbname);
 
 	public void writeUserInfo(User u) throws PilotLinkException {
 		writeUserInfo(handle, u);

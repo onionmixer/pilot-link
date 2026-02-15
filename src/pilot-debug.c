@@ -102,21 +102,21 @@ static void SetLabel(const char * label, const char * value)
 static char *itoa(int val)
 {
         static 	char buf[20];
-        sprintf(buf, "%d", val);
+        snprintf(buf, sizeof(buf), "%d", val);
         return 	buf;
 }
 
 static char *htoa(int val)
 {
         static char buf[9];
-        sprintf(buf, "%8.8X", val);
+        snprintf(buf, sizeof(buf), "%8.8X", val);
         return buf;
 }
 
 static char *h4toa(int val)
 {
         static char buf[5];
-        sprintf(buf, "%4.4X", val);
+        snprintf(buf, sizeof(buf), "%4.4X", val);
         return buf;
 }
 
@@ -380,7 +380,7 @@ Read_Pilot(ClientData clientData, int mask)
 	    if (stalestate) {
 	       char buffer[40];
 
-	       sprintf(buffer,
+	       snprintf(buffer, sizeof(buffer),
 		       "Palm halted at %8.8lX (function %s) with exception %d\n",
 		       state.regs.PC, state.func_name, state.exception);
 	       display(buffer, "Debug: ", 1);
@@ -1011,7 +1011,7 @@ static int proc_battery(ClientData clientData, Tcl_Interp * interp, int argc,
    %d, pluggedin= %d, err = %d\n", (float)v/100, (float)critical/100,
    (float)warn/100, maxTicks, kind, pluggedin, err); */
 
-        sprintf(buffer, "%.2f %s%s", (float) v / 100,
+        snprintf((char *)buffer, sizeof(buffer), "%.2f %s%s", (float) v / 100,
                 (kind == 0) ? "Alkaline" : (kind == 1) ? "NiCd" : (kind ==
                                                                    2) ?
                 "Lithium" : "", pluggedin ? " Ext" : "");
@@ -1245,10 +1245,15 @@ static int proc_transmit(ClientData clientData, Tcl_Interp * interp, int argc,
         buffer[3] = 0;
         buffer[4] = 0x7f;
         buffer[5] = 0;
-        strcpy(buffer + 6, argv[1]);
-        strcat(buffer + 6, "\n");
-
-        pi_write(port, buffer, 6 + strlen(argv[1]) + 2);
+        {
+                size_t alen = strlen(argv[1]);
+                if (alen > sizeof(buffer) - 8)
+                        alen = sizeof(buffer) - 8;
+                memcpy(buffer + 6, argv[1], alen);
+                buffer[6 + alen] = '\n';
+                buffer[6 + alen + 1] = '\0';
+                pi_write(port, buffer, 6 + alen + 2);
+        }
 
         return TCL_OK;
 }
@@ -1432,7 +1437,8 @@ static int proc_port(ClientData clientData, Tcl_Interp * interp, int argc,
 /*        port = pi_socket(PI_AF_SLP, PI_SOCK_RAW, PI_PF_SLP); */
 
 /*       laddr.pi_family = PI_AF_SLP; */
-        strcpy(laddr.pi_device, argv[1]);
+        strncpy(laddr.pi_device, argv[1], sizeof(laddr.pi_device) - 1);
+        laddr.pi_device[sizeof(laddr.pi_device) - 1] = '\0';
 
         if (pi_bind(port, (struct sockaddr *) &laddr, sizeof(laddr)) == -1) {
                 Say("Unable to open port '");
@@ -1505,7 +1511,7 @@ static int proc_feature(ClientData clientData, Tcl_Interp * interp, int argc,
                                 e1 = DbgRPC(&p, &e2);
                                 if (e1 || e2)
                                         break;
-                                sprintf(buffer,
+                                snprintf(buffer, sizeof(buffer),
                                         "\t%s, 0x%4.4x (%d) = 0x%8.8lx (%lu)",
                                         printlong(type), id_, id_, value,
                                         value);

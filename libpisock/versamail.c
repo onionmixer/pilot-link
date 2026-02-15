@@ -106,8 +106,9 @@ void free_VersaMail(struct VersaMail *a)
 
 #define PUT_STR_FROM(attrib) {                  \
     if (attrib) {                               \
-      strcpy(buffer, attrib);                   \
-      SHUFFLE_BUFFER(strlen(buffer));           \
+      size_t _slen = strlen(attrib);            \
+      memcpy(buffer, attrib, _slen + 1);        \
+      SHUFFLE_BUFFER(_slen);                    \
     } else                                      \
       set_byte(buffer, 0);                      \
     buffer++;                                   \

@@ -154,7 +154,7 @@ u_open(pi_socket_t *ps, struct pi_sockaddr *addr, size_t addrlen)
 		return pi_set_error(ps->sd, PI_ERR_GENERIC_MEMORY);
 
 	/* create device endpoint name string */
-	sprintf(pEndPoint, "%s.%d", tty, 2);
+	snprintf(pEndPoint, strlen(tty)+20, "%s.%d", tty, 2);
 
 	/* open the endpoint with read write access */
 	endpoint_fd = open(pEndPoint, O_RDWR, 0);
@@ -277,19 +277,30 @@ u_poll(pi_socket_t *ps, int timeout)
 static ssize_t
 u_write(pi_socket_t *ps, const unsigned char *buf, size_t len, int flags)
 {
+	struct 	pi_usb_data *data = (struct pi_usb_data *)ps->device->data;
 	int 	nwrote,
 		total,
 		write_len;
 	fd_set 	ready;
+	struct 	timeval t;
 
 	total 		= len;
 	write_len 	= len;
 
-	/* FIXME: there is no timeout handling in the original freebsdusb code! */
-
 	while (total > 0) {
 		FD_ZERO(&ready);
 		FD_SET(ps->sd, &ready);
+
+		if (data->timeout == 0)
+			select(ps->sd + 1, 0, &ready, 0, 0);
+		else {
+			t.tv_sec 	= data->timeout / 1000;
+			t.tv_usec 	= (data->timeout % 1000) * 1000;
+			if (select(ps->sd + 1, 0, &ready, 0, &t) == 0) {
+				errno = ETIMEDOUT;
+				return pi_set_error(ps->sd, PI_ERR_SOCK_TIMEOUT);
+			}
+		}
 
 		if (!FD_ISSET(ps->sd, &ready)) {
 			ps->state = PI_SOCK_CONN_BREAK;

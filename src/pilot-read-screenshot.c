@@ -40,10 +40,6 @@
 
 #ifdef HAVE_PNG
 # include "png.h"
-# if (PNG_LIBPNG_VER < 10201)
-#  define png_voidp_NULL (png_voidp)NULL
-#  define png_error_ptr_NULL (png_error_ptr)NULL
-# endif
 #endif
 
 #define pi_mktag(c1,c2,c3,c4) (((c1)<<24)|((c2)<<16)|((c3)<<8)|(c4))
@@ -83,12 +79,15 @@ void write_png ( char *fname, struct ss_state *state )
 	png_infop info_ptr;
 	FILE *f;
 
-	if( state->depth < 8 )
+	if( state->depth < 8 ) {
 		gray_buf = malloc( state->w );
+		if (gray_buf == NULL)
+			return;
+	}
 
 	png_ptr = png_create_write_struct
-		(PNG_LIBPNG_VER_STRING, png_voidp_NULL,
-		png_error_ptr_NULL, png_error_ptr_NULL);
+		(PNG_LIBPNG_VER_STRING, NULL,
+		NULL, NULL);
 
 	if (!png_ptr)
 		return;
@@ -108,6 +107,13 @@ void write_png ( char *fname, struct ss_state *state )
 	}
 
 	f = fopen (fname, "wb");
+	if (f == NULL) {
+		fprintf(stderr, "Could not open %s for writing\n", fname);
+		png_destroy_write_struct (&png_ptr, &info_ptr);
+		if (gray_buf)
+			free(gray_buf);
+		return;
+	}
 
 	png_init_io (png_ptr, f);
 
@@ -159,6 +165,10 @@ void write_ppm ( char *fname, struct ss_state *state)
 	FILE *f;
 
 	f = fopen (fname, "wb");
+	if (f == NULL) {
+		fprintf(stderr, "Could not open %s for writing\n", fname);
+		return;
+	}
 
 	fprintf (f, "P6\n# ");
 

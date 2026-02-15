@@ -33,18 +33,26 @@
 %typemap (python,in) char *ALLOWNULL {
     if (!($input) || ($input == Py_None))
 		$1 = NULL;
-    else
-		$1 = PyString_AsString($input);
+    else if (PyUnicode_Check($input))
+		$1 = (char *)PyUnicode_AsUTF8($input);
+    else if (PyBytes_Check($input))
+		$1 = PyBytes_AS_STRING($input);
+    else {
+		PyErr_SetString(PyExc_TypeError, "Expected str, bytes, or None");
+		SWIG_fail;
+    }
 }
 
 // -------------------------------------
 //  type/creator pair
 // -------------------------------------
 %typemap (python,in) unsigned long creator, unsigned long type {
-    if (PyString_Check($input))
-        $1 = makelong(PyString_AS_STRING($input));
-    else if (PyInt_Check($input))
-        $1 = PyInt_AsLong($input);
+    if (PyUnicode_Check($input))
+        $1 = makelong(PyUnicode_AsUTF8($input));
+    else if (PyBytes_Check($input))
+        $1 = makelong(PyBytes_AS_STRING($input));
+    else if (PyLong_Check($input))
+        $1 = PyLong_AsLong($input);
     else {
         PyErr_SetString(PyExc_TypeError,"You must specify a type/creator");
         SWIG_fail;
@@ -84,7 +92,7 @@
     $1 = (time_t *)&time;
 }
 %typemap (python,argout) time_t *time (time_t time) {
-    if ($1) $result = PyInt_FromLong((unsigned long ) $1);
+    if ($1) $result = PyLong_FromUnsignedLong((unsigned long ) *$1);
 }
 
 // -------------------------------------
@@ -146,13 +154,29 @@
 // Passing data as parameter
 // -------------------------------------
 %typemap (python,in) (const void *databuf, size_t datasize) %{
-	$1 = (void *)PyString_AsString($input);
-	$2 = PyString_Size($input);
+	if (PyBytes_Check($input)) {
+		$1 = (void *)PyBytes_AsString($input);
+		$2 = PyBytes_Size($input);
+	} else if (PyByteArray_Check($input)) {
+		$1 = (void *)PyByteArray_AsString($input);
+		$2 = PyByteArray_Size($input);
+	} else {
+		PyErr_SetString(PyExc_TypeError, "Expected bytes or bytearray");
+		SWIG_fail;
+	}
 %}
 
 %typemap (python,in) (size_t datasize, const void *databuf) %{
-    $1 = PyString_Size($input);
-    $2 = (void *)PyString_AsString($input);
+	if (PyBytes_Check($input)) {
+		$1 = PyBytes_Size($input);
+		$2 = (void *)PyBytes_AsString($input);
+	} else if (PyByteArray_Check($input)) {
+		$1 = PyByteArray_Size($input);
+		$2 = (void *)PyByteArray_AsString($input);
+	} else {
+		PyErr_SetString(PyExc_TypeError, "Expected bytes or bytearray");
+		SWIG_fail;
+	}
 %}
 
 // -------------------------------------
@@ -212,7 +236,7 @@
 	if ($1 && $2) {
 		int slotIndex;
 		for (slotIndex=0; slotIndex < *$1; slotIndex++)
-			t_output_helper($result, PyInt_FromLong($2[slotIndex]));
+			t_output_helper($result, PyLong_FromLong($2[slotIndex]));
 	}
 %}
 
@@ -257,7 +281,7 @@ static PyObject *_wrap_dlp_ReadRecordIDList (PyObject *self, PyObject *args) {
 
 	list = PyList_New(0);
 	for (i=0; i<count; i++)
-		PyList_Append(list, PyInt_FromLong((long)buf[i]));
+		PyList_Append(list, PyLong_FromLong((long)buf[i]));
 
 	PyMem_Free(buf);
 	return list;

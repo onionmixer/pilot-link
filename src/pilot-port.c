@@ -64,6 +64,8 @@ void do_read(struct pi_socket *ps, int type, char *buffer, int length)
 	if (type == 0) {
 		struct pi_skb *nskb;
 		nskb = (struct pi_skb *) malloc(sizeof(struct pi_skb));
+		if (nskb == NULL)
+			return;
 
 		nskb->source 	= buffer[0];
 		nskb->dest 	= buffer[1];
@@ -131,6 +133,10 @@ int main(int argc, char *argv[])
 
 	buffer = malloc(0xFFFF + 128);
 	slpbuffer = malloc(0xFFFF + 128);
+	if (buffer == NULL || slpbuffer == NULL) {
+		fprintf(stderr, "   ERROR: Unable to allocate memory.\n");
+		goto end;
+	}
 
 	if ((serverfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		fprintf(stderr,"   ERROR: Unable to obtain socket: %s.\n",strerror(errno));

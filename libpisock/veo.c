@@ -50,7 +50,11 @@ int
 unpack_Veo(Veo_t *veo, unsigned char *buffer, size_t len)
 {
    unsigned char *start = buffer;
-   
+
+   /* header is 1+1+1+12+4+2+2+2 = 25 bytes minimum */
+   if (len < 25)
+     return 0;
+
    /* consume unknown */
    buffer += 1;
    veo->quality = (unsigned char) get_byte(buffer);
@@ -78,10 +82,10 @@ unpack_Veo(Veo_t *veo, unsigned char *buffer, size_t len)
 	veo->width = 320;
 	veo->height = 240;
      }
-   else 
+   else
      fprintf( stderr, "unknown resolution\n" );
-	
-   return ( buffer - start );	/* FIXME: return real length */
+
+   return ( buffer - start );
 }
 
 

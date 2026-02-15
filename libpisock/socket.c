@@ -89,6 +89,9 @@ static pi_socket_list_t *watch_list = NULL;
 /* Automated tickling interval */
 static unsigned int interval = 0;
 
+/* Signal-safe tickle pending flag */
+static volatile sig_atomic_t tickle_pending = 0;
+
 /* Indicates that the exit function has already been installed. Made non-static
  * so that library users can choose to not have an exit function installed */
 int pi_sock_installedexit = 0;
@@ -817,9 +820,25 @@ is_listener (pi_socket_t *ps)
 static RETSIGTYPE
 onalarm(int signo)
 {
+	/* Only set the flag and re-arm the alarm.
+	   Mutex operations are not async-signal-safe and can deadlock
+	   if the signal interrupts a thread holding watch_list_mutex. */
+	tickle_pending = 1;
+	signal(signo, onalarm);
+	alarm(interval ? interval : 1);
+}
+
+/* Process pending tickles from main thread context (signal-safe).
+   Called from I/O paths where tickle processing is appropriate. */
+static void
+pi_process_tickles(void)
+{
 	pi_socket_list_t *l;
 
-	signal(signo, onalarm);
+	if (!tickle_pending)
+		return;
+
+	tickle_pending = 0;
 
 	pi_mutex_lock(&watch_list_mutex);
 
@@ -833,11 +852,9 @@ onalarm(int signo)
 			LOG((PI_DBG_SOCK, PI_DBG_LVL_INFO,
 				"SOCKET Socket %d is busy during tickle\n",
 				ps->sd));
-			alarm(1);
 		} else {
 			LOG((PI_DBG_SOCK, PI_DBG_LVL_INFO,
 			    "SOCKET Tickling socket %d\n", ps->sd));
-			alarm(interval);
 		}
 	}
 
@@ -1035,24 +1052,29 @@ pi_devsocket(int pi_sd, const char *port, struct pi_sockaddr *addr)
 	/* Create the device and sockaddr */
 	addr->pi_family = PI_AF_PILOT;
 	if (!strncmp (port, "serial:", 7)) {
-		strncpy(addr->pi_device, port + 7, sizeof(addr->pi_device));
+		strncpy(addr->pi_device, port + 7, sizeof(addr->pi_device) - 1);
+		addr->pi_device[sizeof(addr->pi_device) - 1] = '\0';
 		ps->device = pi_serial_device (PI_SERIAL_DEV);
 #ifdef HAVE_USB
 	} else if (!strncmp (port, "usb:", 4)) {
-		strncpy(addr->pi_device, port + 4, sizeof(addr->pi_device));
+		strncpy(addr->pi_device, port + 4, sizeof(addr->pi_device) - 1);
+		addr->pi_device[sizeof(addr->pi_device) - 1] = '\0';
 		ps->device = pi_usb_device (PI_USB_DEV);
 #endif
 	} else if (!strncmp (port, "net:", 4)) {
-		strncpy(addr->pi_device, port + 4, sizeof(addr->pi_device));
+		strncpy(addr->pi_device, port + 4, sizeof(addr->pi_device) - 1);
+		addr->pi_device[sizeof(addr->pi_device) - 1] = '\0';
 		ps->device = pi_inet_device (PI_NET_DEV);
 #ifdef HAVE_BLUEZ
 	} else if (!strncmp (port, "bluetooth:", 10) || !strncmp (port, "bt:", 3)) {
-		strncpy(addr->pi_device, strchr(port, ':') + 1, sizeof(addr->pi_device));
+		strncpy(addr->pi_device, strchr(port, ':') + 1, sizeof(addr->pi_device) - 1);
+		addr->pi_device[sizeof(addr->pi_device) - 1] = '\0';
 		ps->device = pi_bluetooth_device (PI_BLUETOOTH_DEV);
 #endif
 	} else {
 		/* No prefix assumed to be serial: (for compatibility) */
-		strncpy(addr->pi_device, port, sizeof(addr->pi_device));
+		strncpy(addr->pi_device, port, sizeof(addr->pi_device) - 1);
+		addr->pi_device[sizeof(addr->pi_device) - 1] = '\0';
 		ps->device = pi_serial_device (PI_SERIAL_DEV);
 	}
 
@@ -1259,6 +1281,9 @@ pi_send(int pi_sd, const void *msg, size_t len, int flags)
 {
 	pi_socket_t *ps;
 
+	/* Process any pending tickles from signal handler */
+	pi_process_tickles();
+
 	if (!(ps = find_pi_socket(pi_sd))) {
 		errno = ESRCH;
 		return PI_ERR_SOCK_INVALID;
@@ -1288,6 +1313,9 @@ ssize_t
 pi_recv(int pi_sd, pi_buffer_t *msg, size_t len, int flags)
 {
 	pi_socket_t *ps;
+
+	/* Process any pending tickles from signal handler */
+	pi_process_tickles();
 
 	if (!(ps = find_pi_socket(pi_sd))) {
 		errno = ESRCH;

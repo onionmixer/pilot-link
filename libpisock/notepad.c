@@ -178,10 +178,11 @@ int unpack_NotePad(NotePad_t *notepad, unsigned char *buffer, size_t len)
 	  }
 	     
 	memcpy( notepad->data, buffer, notepad->body.dataLen );
+	buffer += notepad->body.dataLen;
 
      }
-   
-   return ( buffer - start );	/* FIXME: return real length */
+
+   return ( buffer - start );
 }
 
 

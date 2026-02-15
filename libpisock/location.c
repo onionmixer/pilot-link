@@ -722,11 +722,12 @@ pack_Timezone(const Timezone_t *tz, pi_buffer_t *buf)
 	set_byte(buf->data+offset, tz->t4);
 
 	if(NULL != tz->name) {
+		size_t nlen = strlen(tz->name);
 		offset = buf->used;
-		pi_buffer_expect(buf, buf->used + strlen(tz->name)+1);
-		buf->used = buf->used + strlen(tz->name)+1;
+		pi_buffer_expect(buf, buf->used + nlen + 1);
+		buf->used = buf->used + nlen + 1;
 
-		strcpy((char *)(buf->data+offset), tz->name);
+		memcpy(buf->data+offset, tz->name, nlen + 1);
 	}
 		
 	return 0;
@@ -781,11 +782,12 @@ pack_Location(const Location_t *loc, pi_buffer_t *buf)
 	}
 
 	if(NULL != loc->note) {
+		size_t nlen = strlen(loc->note);
 		offset = buf->used;
-		pi_buffer_expect(buf, buf->used + strlen(loc->note)+1);
-		buf->used = buf->used + strlen(loc->note)+1;
+		pi_buffer_expect(buf, buf->used + nlen + 1);
+		buf->used = buf->used + nlen + 1;
 
-		strcpy((char *)(buf->data+offset), loc->note);
+		memcpy(buf->data+offset, loc->note, nlen + 1);
 	} else {
 		offset = buf->used;
 		pi_buffer_expect(buf, buf->used + 1);

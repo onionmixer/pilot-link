@@ -77,11 +77,14 @@ int plu_connect()
 		return -1;
 	}
 
-	sd = pi_accept_to(sd, 0, 0, plu_timeout);
-	if (sd < 0) {
-		fprintf(stderr, "\n   Error accepting data on %s\n", plu_port);
-		pi_close(sd);
-		return -1;
+	{
+		int listen_sd = sd;
+		sd = pi_accept_to(listen_sd, 0, 0, plu_timeout);
+		if (sd < 0) {
+			fprintf(stderr, "\n   Error accepting data on %s\n", plu_port);
+			pi_close(listen_sd);
+			return -1;
+		}
 	}
 
 	if (!plu_quiet && isatty(fileno(stdout))) {

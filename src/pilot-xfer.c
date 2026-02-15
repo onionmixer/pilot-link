@@ -374,9 +374,15 @@ palm_backup(const char *dirname, unsigned long int flags, int unsaved,
 
 				if (ofile_total >= ofile_len)
 				{
+					char **tmp;
 					ofile_len += 256;
-					orig_files = realloc(orig_files,
+					tmp = realloc(orig_files,
 							(sizeof (char *)) * ofile_len);
+					if (tmp == NULL)
+					{
+						continue;
+					}
+					orig_files = tmp;
 				}
 				name = malloc(dirnamelen + strlen (dirent->d_name) + 2);
 				if (name == NULL)
@@ -393,6 +399,12 @@ palm_backup(const char *dirname, unsigned long int flags, int unsaved,
 
 	buffer = pi_buffer_new (sizeof(struct DBInfo));
 	name = (char *)malloc(strlen(dirname) + 1 + 256);
+	if (name == NULL)
+	{
+		pi_buffer_free(buffer);
+		fprintf(stderr, "   Unable to allocate memory for filename buffer\n");
+		return;
+	}
 
 	for (;;)
 	{
@@ -429,8 +441,7 @@ palm_backup(const char *dirname, unsigned long int flags, int unsaved,
 			exit(EXIT_FAILURE);
 		}
 
-		strcpy(name, dirname);
-		strcat(name, "/");
+		snprintf(name, strlen(dirname) + 1 + 256, "%s/", dirname);
 		protect_name(name + strlen(name), info.name);
 
 		if (palm_creator(info.creator))
@@ -1014,6 +1025,11 @@ palm_restore(const char *dirname)
 			continue;
 
 		db[dbcount] = (struct db *) malloc(sizeof(struct db));
+		if (db[dbcount] == NULL)
+		{
+			printf("Unable to allocate memory for db entry\n");
+			continue;
+		}
 
 		sprintf(db[dbcount]->name, "%s/%s", dirname,
 			dirent->d_name);
@@ -1899,12 +1915,20 @@ palm_cardinfo ()
 		dlp_VFSVolumeGetLabel (sd, volumes[i], &len, buf);
 
 		t = malloc (sizeof (cardreport_t));
+		if (t == NULL)
+			goto cleanup;
 		t->size_used = size_used;
 		t->size_total = size_total;
 		t->size_free = size_total - size_used;
 		t->type = mediatype(&info);
 		t->cardnum = info.slotRefNum;
 		t->name = malloc (strlen(buf) + 1);
+		if (t->name == NULL) {
+			if (t->type != NULL)
+				free(t->type);
+			free(t);
+			goto cleanup;
+		}
 		strcpy (&t->name[1], buf);
 		t->name[0] = '/';
 

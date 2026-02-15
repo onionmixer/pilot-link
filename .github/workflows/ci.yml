@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake libtool pkg-config \
+            libpopt-dev libpng-dev libusb-dev \
+            libbluetooth-dev libreadline-dev \
+            ${{ matrix.compiler }}
+
+      - name: Autoreconf
+        run: autoreconf -fi
+
+      - name: Configure
+        run: |
+          export CC=${{ matrix.compiler }}
+          ./configure --prefix=/usr/local \
+            --with-libpng \
+            --enable-conduits \
+            --disable-perl \
+            --disable-python \
+            --disable-java \
+            --disable-tcl
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: Run tests
+        run: make check
+
+      - name: Show test results
+        if: always()
+        run: |
+          if [ -f tests/test-suite.log ]; then
+            cat tests/test-suite.log
+          fi
+          for f in tests/*.log; do
+            if [ -f "$f" ]; then
+              echo "=== $f ==="
+              cat "$f"
+            fi
+          done
+
+  build-minimal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install minimal dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake libtool pkg-config \
+            libpopt-dev
+
+      - name: Autoreconf
+        run: autoreconf -fi
+
+      - name: Configure (minimal)
+        run: |
+          ./configure --prefix=/usr/local \
+            --without-libpng \
+            --disable-conduits \
+            --disable-perl \
+            --disable-python \
+            --disable-java \
+            --disable-tcl \
+            --disable-libusb
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: Run tests
+        run: make check

@@ -421,7 +421,7 @@ int Contact_add_blob(struct Contact *c, Blob_t *blob)
       c->blob[i]->data = malloc(blob->length);
       strncpy(c->blob[i]->type, blob->type, 4);
       c->blob[i]->length = blob->length;
-      strncpy((char *)c->blob[i]->data, (char *)blob->data, blob->length);
+      memcpy(c->blob[i]->data, blob->data, blob->length);
       return EXIT_SUCCESS;
    }
 

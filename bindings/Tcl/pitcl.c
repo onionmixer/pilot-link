@@ -25,9 +25,8 @@
 #include "pi-userland.h"
 
 
-#if TCL_MAJOR_VERSION >= 8
-# define Objects
-#endif
+/* Tcl 8.6+ required */
+#define Objects
 
 struct tcl_e {char *name; long value;};
 
@@ -75,15 +74,8 @@ static int
 PisockOutputProc(ClientData instanceData, char *buf, int toWrite, int *errorCodePtr);
 static void
 PisockWatchProc(ClientData instanceData, int mask);
-#if TCL_MAJOR_VERSION >=8
 static int
 PisockGetHandleProc(ClientData instanceData, int direction, ClientData *handlePtr);
-#else
-static Tcl_File
-OldPisockGetHandleProc(ClientData instanceData, int direction);
-static int
-PisockReadyProc(ClientData instanceData, int mask);
-#endif
 
 static Tcl_ChannelType pisockChannelType = {
     "pisock",                              /* Type name. */
@@ -95,12 +87,7 @@ static Tcl_ChannelType pisockChannelType = {
     NULL,                               /* Set option proc. */
     NULL,                   /* Get option proc. */
     PisockWatchProc,                       /* Initialize notifier. */
-#if TCL_MAJOR_VERSION < 8
-    PisockReadyProc,
-    OldPisockGetHandleProc,                   /* Get OS handles out of channel. */
-#else
     PisockGetHandleProc,                   /* Get OS handles out of channel. */
-#endif    
 };
 
 
@@ -201,11 +188,8 @@ void register_sock(int sock) {
 	memset((void*)&pack[sock], 0, sizeof(struct Packer));
 }
 
-#if TCL_MAJOR_VERSION < 8
-# define statePtr_fd Tcl_GetFile((ClientData)statePtr->fd, TCL_UNIX_FD)
-#else
-# define statePtr_fd statePtr->fd
-#endif
+/* Tcl 8.6+ only */
+#define statePtr_fd statePtr->fd
 
 static void     AcceptCallbackProc _ANSI_ARGS_((ClientData callbackData,
                     Tcl_Channel chan));
@@ -399,7 +383,6 @@ PisockWatchProc(instanceData, mask)
 {
     PisockState *statePtr = (PisockState *) instanceData;
 
-#if TCL_MAJOR_VERSION >=8
     if (mask) {
         Tcl_CreateFileHandler(statePtr_fd, mask,
                 (Tcl_FileProc *) Tcl_NotifyChannel,
@@ -407,13 +390,9 @@ PisockWatchProc(instanceData, mask)
     } else {
         Tcl_DeleteFileHandler(statePtr_fd);
     }
-#else
-    Tcl_WatchFile(Tcl_GetFile((ClientData)statePtr->fd, TCL_UNIX_FD), mask);
-#endif
         
 }
 
-#if TCL_MAJOR_VERSION >= 8
         /* ARGSUSED */
 static int
 PisockGetHandleProc(instanceData, direction, handlePtr)
@@ -426,29 +405,6 @@ PisockGetHandleProc(instanceData, direction, handlePtr)
     *handlePtr = (ClientData)statePtr->fd;
     return TCL_OK;
 }
-#else
-        /* ARGSUSED */
-static Tcl_File
-OldPisockGetHandleProc(instanceData, direction)
-    ClientData instanceData;    /* The socket state. */
-    int direction;              /* Not used. */
-{
-    PisockState *statePtr = (PisockState *) instanceData;
-
-    return Tcl_GetFile((ClientData)statePtr->fd, TCL_UNIX_FD);
-}
-
-static int
-PisockReadyProc(instanceData, mask)
-ClientData instanceData;
-int mask;
-{
-	PisockState *statePtr = (PisockState *) instanceData;
-	    
-	return Tcl_FileReady(Tcl_GetFile((ClientData)statePtr->fd, TCL_UNIX_FD), mask);
-}
-
-#endif
 
 static int
 WaitForConnect(statePtr, errorCodePtr)
@@ -664,11 +620,7 @@ static int tcl_socket(Tcl_Interp *interp, char * arg)
 	if (!c) {
 		Tcl_GetInt(interp, arg, &fd);
 	} else {
-#if TCL_MAJOR_VERSION >= 8
 		Tcl_GetChannelHandle(c, TCL_WRITABLE, (ClientData)&fd);
-#else
-		return (int)Tcl_GetFileInfo(Tcl_GetChannelFile(c, TCL_WRITABLE), 0);
-#endif
 	}
 	return fd;
 }

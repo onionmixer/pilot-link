@@ -52,6 +52,7 @@ static int u_write(pi_socket_t *ps, unsigned char *buf, size_t len, int flags);
 static int u_read(pi_socket_t *ps, pi_buffer_t *buf, size_t len, int flags);
 static int u_poll(pi_socket_t *ps, int timeout);
 static int u_flush(pi_socket_t *ps, int flags);
+static int u_wait_for_device(pi_socket_t *ps, int *timeout);
 
 void pi_usb_impl_init (struct pi_usb_impl *impl)
 {
@@ -61,7 +62,7 @@ void pi_usb_impl_init (struct pi_usb_impl *impl)
 	impl->read 		= u_read;
 	impl->flush		= u_flush;
 	impl->poll 		= u_poll;
-	impl->wait_for_device	= NULL;		/* not implemented in linuxusb yet */
+	impl->wait_for_device	= u_wait_for_device;
 	impl->changebaud	= NULL;		/* we don't need this one on linuxusb
 						 * as USB serial adapters redirect to serial ports
 						 */
@@ -349,6 +350,39 @@ u_read(pi_socket_t *ps, pi_buffer_t *buf, size_t len, int flags)
 
 	return rbuf;
 }
+
+/***********************************************************************
+ *
+ * Function:    u_wait_for_device
+ *
+ * Summary:     Wait for the USB device to be ready
+ *
+ * Parameters:  pi_socket_t*, int* timeout in ms (updated with remaining)
+ *
+ * Returns:     >0 on success, 0 on timeout, <0 on error
+ *
+ ***********************************************************************/
+static int
+u_wait_for_device(pi_socket_t *ps, int *timeout)
+{
+	LOG((PI_DBG_DEV, PI_DBG_LVL_DEBUG,
+		"DEV WAIT linuxusb fd: %d timeout: %d\n",
+		ps->sd, *timeout));
+
+	/* On linuxusb, the device file is already opened during bind.
+	   Verify the file descriptor is still valid. */
+	if (ps->sd < 0 || fcntl(ps->sd, F_GETFL) == -1) {
+		LOG((PI_DBG_DEV, PI_DBG_LVL_ERR,
+			"DEV WAIT linuxusb device no longer available\n"));
+		errno = ENODEV;
+		return -1;
+	}
+
+	LOG((PI_DBG_DEV, PI_DBG_LVL_DEBUG,
+		"DEV WAIT linuxusb device ready\n"));
+	return 1;
+}
+
 
 /***********************************************************************
  *

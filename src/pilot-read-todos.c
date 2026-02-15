@@ -21,25 +21,25 @@
  *
  */
 
-/* 12-27-2003:
-   FIXME: Add "Private" and "Delete" flags */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
 #include "pi-socket.h"
+#include "pi-dlp.h"
 #include "pi-todo.h"
 #include "pi-file.h"
 #include "pi-header.h"
 #include "pi-userland.h"
 
-void print_unarchived(struct ToDoAppInfo *tai, struct ToDo *todo, int category)
+void print_unarchived(struct ToDoAppInfo *tai, struct ToDo *todo, int category, int attr)
 {
 	printf("Category: %s\n", tai->category.name[category]);
 	printf("Priority: %d\n", todo->priority);
 	printf("Completed: %s\n", todo->complete ? "Yes" : "No");
+	printf("Private: %s\n", (attr & dlpRecAttrSecret) ? "Yes" : "No");
+	printf("Deleted: %s\n", (attr & dlpRecAttrDeleted) ? "Yes" : "No");
 	if (todo->indefinite) {
 		printf("Due: No Date\n");
 	} else {
@@ -52,7 +52,7 @@ void print_unarchived(struct ToDoAppInfo *tai, struct ToDo *todo, int category)
 	printf("\n");
 }
 
-void print_archived(struct ToDoAppInfo *tai, struct ToDo *todo, int category)
+void print_archived(struct ToDoAppInfo *tai, struct ToDo *todo, int category, int attr)
 {
 	printf("\"Category\", ");
 	printf("\"%s\", ", tai->category.name[category]);
@@ -60,6 +60,10 @@ void print_archived(struct ToDoAppInfo *tai, struct ToDo *todo, int category)
 	printf("\"%d\", ", todo->priority);
 	printf("\"Completed\", ");
 	printf("\"%s\", ", todo->complete ? "Yes" : "No");
+	printf("\"Private\", ");
+	printf("\"%s\", ", (attr & dlpRecAttrSecret) ? "Yes" : "No");
+	printf("\"Deleted\", ");
+	printf("\"%s\", ", (attr & dlpRecAttrDeleted) ? "Yes" : "No");
 
 	if (todo->indefinite) {
 		printf("\"Due\", \"No Date\", ");
@@ -229,7 +233,7 @@ int main(int argc, const char *argv[])
 		if (attr & dlpRecAttrArchived) {
 			if (archived) {
 				unpack_ToDo(&todo, recbuf, todo_v1);
-				print_archived(&tai,&todo,category);
+				print_archived(&tai,&todo,category,attr);
 				free_ToDo(&todo);
 			}
 			continue;
@@ -239,7 +243,7 @@ int main(int argc, const char *argv[])
 
 		if (!archived) {
 			unpack_ToDo(&todo, recbuf, todo_v1);
-			print_unarchived(&tai,&todo,category);
+			print_unarchived(&tai,&todo,category,attr);
 			free_ToDo(&todo);
 		}
 	}
